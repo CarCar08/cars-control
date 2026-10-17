@@ -1,4 +1,4 @@
-using CarsControl.App.Services;
+﻿using CarsControl.App.Services;
 using CarsControl.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Wpf.Ui.Controls;
@@ -19,7 +19,7 @@ public partial class FirstRunWindow : FluentWindow
         vm.OpenSettingsSection += section => Navigator.Go("settings", section);
         vm.OpenPage += Navigator.Go;
         if (System.Windows.Application.Current.MainWindow is { IsVisible: true } owner) Owner = owner;
-        if (App.IsDevInstance) ShowActivated = false;
+        if (App.IsDevInstance) { ShowActivated = false; SourceInitialized += (_, _) => Services.DevFocusGuard.NoActivate(this); }
         Closed += (_, _) => _open = null;
     }
 

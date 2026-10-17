@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Security.Principal;
 using System.Windows;
 using CarsControl.App.Services;
@@ -43,6 +43,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        DevFocusGuard.Install(); // test copies only: never keep the foreground
         ErrorReporter.Install(this);
         ColumnHelp.Install();
 

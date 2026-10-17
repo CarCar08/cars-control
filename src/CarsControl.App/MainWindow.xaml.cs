@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
@@ -44,7 +44,7 @@ public partial class MainWindow : FluentWindow
                 Top = where.Y;
                 Opacity = 0;
             }
-            SourceInitialized += (_, _) => DevWindowPlacement.MoveToSecondaryMonitor(this);
+            SourceInitialized += (_, _) => { Services.DevFocusGuard.NoActivate(this); DevWindowPlacement.MoveToSecondaryMonitor(this); };
             Loaded += (_, _) =>
             {
                 DevWindowPlacement.FitToMonitor(this); // a TV scaled to 1536x864 is shorter than the default window

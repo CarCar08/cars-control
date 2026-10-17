@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Controls;
 using MessageBox = Wpf.Ui.Controls.MessageBox;
@@ -79,7 +79,7 @@ public static class Dialogs
         };
         if (Application.Current?.MainWindow is { IsVisible: true } owner) box.Owner = owner;
         // Test copies run while you use the PC: their dialogs must not take focus from what you're doing.
-        if (App.IsDevInstance) box.ShowActivated = false;
+        if (App.IsDevInstance) { box.ShowActivated = false; box.SourceInitialized += (_, _) => DevFocusGuard.NoActivate(box); }
         return box;
     }
 }

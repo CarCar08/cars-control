@@ -33,7 +33,7 @@ public partial class PaletteWindow : Window
             if (e.PropertyName == nameof(PaletteViewModel.Selected) && vm.Selected is { } row) Results.ScrollIntoView(row);
         };
         PreviewKeyDown += OnKey;
-        SourceInitialized += (_, _) => Place();
+        SourceInitialized += (_, _) => { Services.DevFocusGuard.NoActivate(this); Place(); };
         Loaded += (_, _) =>
         {
             if (App.IsDevInstance) return; // test copies never take the keyboard

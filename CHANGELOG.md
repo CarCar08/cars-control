@@ -1,11 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 — the public release (2026-10-17)
+
+The first public release: source, issues and releases on GitHub, with the user guide and FAQ.
 
 - **Report a problem** opens a bug report in your browser with the details filled in, and error messages offer **Report it** with the error included. Names, paths and e-mail addresses are removed first; you read it and decide whether to submit. No telemetry.
 - Clearer wording in several places, helpful messages on empty lists (History, Ignored updates, Junk), and easier-to-see (?) buttons.
 - Salad, Proton VPN and Tailscale features only appear on PCs that have them.
 - **C.A.R.S. gives its memory back while it sits in the tray**: after three minutes hidden it releases the pages you visited, pauses graphics rendering and returns the idle memory to Windows, dropping from about 300 MB to about 30 MB. Pages rebuild instantly when you open the window again.
+- **Public**: the source, issues and releases are now on the public GitHub repository, with a user guide, an FAQ (speed and games, what changes on its own, Windows 10, reporting problems) and a project website.
+- Fixed: Health › Overview no longer says "Proton VPN isn't connected" on PCs that don't have Proton VPN, and the Tailscale exit-node text no longer assumes a VPN.
+- Fixed: the first-time setup's Privacy step showed a technical name instead of its checkbox text.
 
 ## 0.9.0 — explanations, accurate health, Epic moves and solid updates (2026-10-16)
 

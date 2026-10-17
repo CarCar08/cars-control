@@ -69,6 +69,7 @@ public static class Platform
     {
         if (!App.IsDevInstance) { window.ShowDialog(); return; }
         window.ShowActivated = false;
+        window.SourceInitialized += (_, _) => DevFocusGuard.NoActivate(window);
         var frame = new DispatcherFrame();
         window.Closed += (_, _) => frame.Continue = false;
         window.Show();
