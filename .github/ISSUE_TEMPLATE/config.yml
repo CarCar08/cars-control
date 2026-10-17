@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Install and setup guide
+    url: https://github.com/CarCar08/cars-control/blob/main/docs/install.md
+    about: Most install questions are answered in the troubleshooting section.
+  - name: Security problem
+    url: https://github.com/CarCar08/cars-control/blob/main/SECURITY.md
+    about: Please report security problems privately, not as a public issue.

@@ -1,0 +1,286 @@
+<Page
+    x:Class="CarsControl.App.Views.BackupPage"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctl="clr-namespace:CarsControl.App.Controls"
+    xmlns:conv="clr-namespace:CarsControl.App.Converters"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Backup &amp; sync"
+    ScrollViewer.CanContentScroll="False">
+    <Page.Resources>
+        <conv:BindingProxy x:Key="Proxy" Data="{Binding}" />
+        <!--  The sync card's edge follows StateLevel (the shared LevelCard style reads a "Level" property)  -->
+        <Style x:Key="StateCard" BasedOn="{StaticResource LevelCard}" TargetType="Border">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding StateLevel}" Value="Good">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StateLevel}" Value="Watch">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StateLevel}" Value="Bad">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Page.Resources>
+    <Grid Margin="32,24,32,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,8">
+            <TextBlock Style="{StaticResource PageTitle}" Text="Backup &amp; sync" />
+            <TextBlock Style="{StaticResource Subtle}" Text="Copies of your files, your setup on every PC, and how your PCs are doing" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <TabControl x:Name="Tabs" Grid.Row="1" Margin="0,8,0,0">
+            <!--  ===== Backups =====  -->
+            <TabItem Header="Backups">
+                <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,12,24">
+                        <ui:InfoBar ctl:Notice.AutoDismiss="True" Margin="0,0,0,8" IsClosable="True" IsOpen="{Binding Banner, Converter={StaticResource OpenWhileSet}, Mode=TwoWay}" Message="{Binding Banner}" Severity="{Binding BannerKind, Converter={StaticResource NoticeSeverity}}" Visibility="{Binding Banner, Converter={StaticResource NullToCollapsed}}" />
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource Subtle}" Text="Only what changed is copied. A file you change or delete is kept as an older version for a while, so a backup can't turn a mistake into a loss." TextTrimming="None" TextWrapping="Wrap" />
+                            <ui:Button Grid.Column="1" Margin="16,0,0,0" Appearance="Primary" Command="{Binding NewJobCommand}" Content="Add a backup" Icon="{ui:SymbolIcon Add24}" ToolTip="Set up a new backup: pick the folders to copy and where the copies go. Documents, Pictures, Desktop and game saves are suggested." />
+                        </Grid>
+
+                        <!--  editor  -->
+                        <ui:Card Margin="0,0,0,12" Padding="18,14" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Backup" /><ctl:HelpButton Topic="backup-jobs" /></StackPanel>
+                                <ui:TextBox Margin="0,0,0,10" MaxWidth="360" HorizontalAlignment="Left" AutomationProperties.Name="Backup name" PlaceholderText="Name" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" ToolTip="A name for this backup. It's also the name of its folder at the destination." />
+
+                                <TextBlock FontWeight="SemiBold" Text="What to back up" />
+                                <ItemsControl Margin="0,4,0,4" ItemsSource="{Binding EditSources}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock VerticalAlignment="Center" Text="{Binding Path}" TextTrimming="CharacterEllipsis" />
+                                                <ui:Button Grid.Column="1" Padding="6,3" Appearance="Transparent" AutomationProperties.Name="{Binding Path, StringFormat='Remove {0}'}" Command="{Binding RemoveCommand}" Icon="{ui:SymbolIcon Dismiss24}" ToolTip="Remove this folder from the backup plan; its files are left unchanged." />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                    <ui:Button Command="{Binding BrowseSourceCommand}" Content="Add a folder…" Icon="{ui:SymbolIcon FolderAdd24}" ToolTip="Pick another folder to include in this backup." />
+                                    <ItemsControl Margin="8,0,0,0" ItemsSource="{Binding Suggestions}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ui:Button Margin="0,0,6,0" Appearance="Transparent" AutomationProperties.Name="{Binding Label, StringFormat='Add {0}'}" Command="{Binding Data.AddSuggestionCommand, Source={StaticResource Proxy}}" CommandParameter="{Binding}" Content="{Binding Label}" FontSize="12" ToolTip="Add this suggested folder to the backup plan." />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <TextBlock FontWeight="SemiBold" Text="Where it goes" />
+                                <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                                    <RadioButton MinWidth="0" Margin="0,0,16,0" Content="A folder (inside a cloud drive such as Proton Drive or OneDrive for an off-site copy)" GroupName="Dest" IsChecked="{Binding EditToUsb, Converter={StaticResource InverseBool}, Mode=OneWay}" Checked="OnFolderChosen" ToolTip="Choose an ordinary backup folder; your cloud client handles encryption and uploading if it is inside its sync folder." />
+                                    <RadioButton MinWidth="0" Content="A USB drive" GroupName="Dest" IsChecked="{Binding EditToUsb, Mode=TwoWay}" ToolTip="Identify a removable drive by its volume ID, so the backup can find it when its drive letter changes." />
+                                </StackPanel>
+                                <StackPanel Margin="0,6,0,0" Visibility="{Binding EditToUsb, Converter={StaticResource InverseBoolToVisibility}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock VerticalAlignment="Center" Text="{Binding EditFolder, TargetNullValue='No folder chosen'}" TextTrimming="CharacterEllipsis" />
+                                        <ui:Button Grid.Column="1" Command="{Binding BrowseDestinationCommand}" Content="Choose…" ToolTip="Pick the folder the copies go into: ideally on another drive, or inside Proton Drive for an off-site copy." />
+                                    </Grid>
+                                    <TextBlock Margin="0,4,0,0" FontSize="12" Style="{StaticResource Subtle}" Text="{Binding ProtonHint}" TextTrimming="None" TextWrapping="Wrap" Visibility="{Binding ProtonHint, Converter={StaticResource EmptyToCollapsed}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,6,0,0" Visibility="{Binding EditToUsb, Converter={StaticResource BoolToVisibility}}">
+                                    <ComboBox MaxWidth="460" HorizontalAlignment="Left" AutomationProperties.Name="USB drive" DisplayMemberPath="Display" ItemsSource="{Binding UsbDrives}" SelectedItem="{Binding EditUsb}" ToolTip="The USB drive this backup goes to. It's remembered by its own ID, so it doesn't matter which letter it gets next time." />
+                                    <TextBlock Margin="0,4,0,0" FontSize="12" Style="{StaticResource Subtle}" Text="The drive is remembered by its own ID, not its letter. Whenever it's plugged in, this backup runs and says when it's safe to unplug." TextTrimming="None" TextWrapping="Wrap" />
+                                    <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource SystemFillColorCautionBrush}" Text="No USB drive is plugged in right now." Visibility="{Binding UsbDrives.Count, Converter={StaticResource ZeroToVisible}}" />
+                                </StackPanel>
+
+                                <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                                    <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Run every" />
+                                    <ComboBox MinWidth="70" AutomationProperties.Name="Hours between runs" ItemsSource="{Binding IntervalChoices}" SelectedItem="{Binding EditIntervalHours}" ToolTip="How often the backup runs while you're away. Once a day suits most people." />
+                                    <TextBlock Margin="8,0,20,0" VerticalAlignment="Center" Text="hours, and keep older versions for" />
+                                    <ComboBox MinWidth="70" AutomationProperties.Name="Days to keep versions" ItemsSource="{Binding KeepChoices}" SelectedItem="{Binding EditKeepDays}" ToolTip="How long older versions of changed or deleted files are kept inside the backup (in .cars-versions) before being removed." />
+                                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="days" />
+                                </StackPanel>
+                                <TextBlock Margin="0,10,0,0" FontWeight="SemiBold" Text="Leave out (names or patterns, separated by commas)" />
+                                <ui:TextBox Margin="0,4,0,0" AutomationProperties.Name="Leave out" Text="{Binding EditExcludes, UpdateSourceTrigger=PropertyChanged}" ToolTip="Names or patterns to skip, separated by commas, for example: *.tmp, node_modules, cache" />
+
+                                <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource SystemFillColorCautionBrush}" Text="{Binding EditWarning}" TextWrapping="Wrap" Visibility="{Binding EditWarning, Converter={StaticResource NullToCollapsed}}" />
+                                <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Text="{Binding EditProblem}" TextWrapping="Wrap" Visibility="{Binding EditProblem, Converter={StaticResource NullToCollapsed}}" />
+                                <StackPanel Margin="0,14,0,0" Orientation="Horizontal">
+                                    <ui:Button Appearance="Primary" Command="{Binding SaveCommand}" Content="Save" IsEnabled="{Binding CanSave}" ToolTip="Save this backup. It runs on its schedule; press Back up now on its card to run it straight away." />
+                                    <ui:Button Margin="8,0,0,0" Command="{Binding CancelCommand}" Content="Cancel" ToolTip="Close this form without saving." />
+                                </StackPanel>
+                            </StackPanel>
+                        </ui:Card>
+
+                        <!--  jobs  -->
+                        <ItemsControl ItemsSource="{Binding Jobs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource LevelCard}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding Name}" />
+                                                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding What}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding Where, StringFormat='to {0}'}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Top" Orientation="Horizontal">
+                                                    <ui:ProgressRing Width="16" Height="16" Margin="0,0,10,0" IsIndeterminate="True" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+                                                    <ui:Button Command="{Binding RunCommand}" Content="Back up now" Icon="{ui:SymbolIcon CloudArrowUp24}" IsEnabled="{Binding IsRunning, Converter={StaticResource InverseBool}}" Visibility="{Binding IsRunning, Converter={StaticResource InverseBoolToVisibility}}" ToolTip="Run this backup now. Only files that changed since the last run are copied." />
+                                                    <ui:Button Command="{Binding StopCommand}" Content="Stop" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" ToolTip="Stop the running backup. What's already copied stays; the next run continues from there." />
+                                                    <ui:Button Margin="6,0,0,0" Padding="8,3" Appearance="Transparent" AutomationProperties.Name="{Binding Name, StringFormat='Open the {0} backup folder'}" Command="{Binding OpenDestinationCommand}" Icon="{ui:SymbolIcon Folder24}" ToolTip="Open the backup folder" />
+                                                    <ui:Button Margin="0,0,0,0" Padding="8,3" Appearance="Transparent" AutomationProperties.Name="{Binding Name, StringFormat='Edit {0}'}" Command="{Binding EditCommand}" Icon="{ui:SymbolIcon Edit24}" ToolTip="Edit" />
+                                                    <ui:Button Padding="8,3" Appearance="Transparent" AutomationProperties.Name="{Binding Name, StringFormat='Remove {0}'}" Command="{Binding DeleteCommand}" Icon="{ui:SymbolIcon Delete24}" ToolTip="Remove this backup job" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <TextBlock Margin="0,6,0,0" Text="{Binding Progress}" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+                                            <TextBlock Margin="0,6,0,0" Text="{Binding Last}" TextWrapping="Wrap" />
+                                            <TextBlock FontSize="12" Style="{StaticResource Subtle}" Text="{Binding When}" TextTrimming="None" TextWrapping="Wrap" />
+                                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource SystemFillColorCautionBrush}" Text="{Binding Warning}" TextWrapping="Wrap" Visibility="{Binding Warning, Converter={StaticResource NullToCollapsed}}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource Subtle}" Text="No backups yet. “Add a backup” suggests your Documents, Pictures, Desktop and game saves." Visibility="{Binding Jobs.Count, Converter={StaticResource ZeroToVisible}}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!--  ===== Your setup =====  -->
+            <TabItem Header="Your setup">
+                <ScrollViewer x:Name="SetupScroll" FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,12,24">
+                        <ui:InfoBar ctl:Notice.AutoDismiss="True" Margin="0,0,0,8" IsClosable="True" IsOpen="{Binding Banner, Converter={StaticResource OpenWhileSet}, Mode=TwoWay}" Message="{Binding Banner}" Severity="{Binding BannerKind, Converter={StaticResource NoticeSeverity}}" Visibility="{Binding Banner, Converter={StaticResource NullToCollapsed}}" />
+                        <TextBlock Margin="0,0,0,10" Style="{StaticResource Subtle}" Text="Your choices (theme, schedules, Gaming mode, protected apps, ignored updates, which apps you have) saved as one small file, so a second PC can take them over. Passwords, tokens and this PC's own holds are never included." TextTrimming="None" TextWrapping="Wrap" />
+
+                        <Border Style="{StaticResource StateCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="Sync folder" />
+                                    <TextBlock Text="{Binding FolderText}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Margin="0,4,0,0" Text="{Binding StateText}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Top" Orientation="Horizontal">
+                                    <ui:Button Padding="8,3" Appearance="Transparent" Command="{Binding OpenFolderCommand}" Content="Open" Icon="{ui:SymbolIcon Folder24}" IsEnabled="{Binding HasFolder}" ToolTip="Open the sync folder in Explorer." />
+                                    <ui:Button Margin="6,0,0,0" Command="{Binding ChooseFolderCommand}" Content="Change…" ToolTip="Pick another folder that your cloud app keeps in sync between your PCs." />
+                                    <ui:Button Margin="6,0,0,0" Appearance="Transparent" Command="{Binding UseProtonFolderCommand}" Content="Use Proton Drive" ToolTip="Use the C.A.R.S. folder inside your Proton Drive (found automatically)." />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <ui:Card Margin="0,0,0,10" Padding="16,12">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock FontWeight="SemiBold" Text="Keep this PC's setup in sync" />
+                                        <TextBlock Style="{StaticResource Subtle}" Text="Every half hour: sends changes made here, takes over changes made on another PC, and stops to ask if both changed." TextTrimming="None" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <ui:ToggleSwitch Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" AutomationProperties.Name="Keep this PC's setup in sync" IsChecked="{Binding Enabled}" ToolTip="Every half hour: send changes made here, take over changes made on another PC, and ask when both changed." />
+                                </Grid>
+                                <TextBlock Margin="0,12,0,4" FontWeight="SemiBold" Text="What's included" />
+                                <WrapPanel>
+                                    <CheckBox MinWidth="0" Margin="0,0,16,4" Content="Preferences" IsChecked="{Binding Preferences}" ToolTip="Theme, schedules, Gaming mode, palette and other choices." />
+                                    <CheckBox MinWidth="0" Margin="0,0,16,4" Content="Ignored updates" IsChecked="{Binding Ignored}" ToolTip="Updates you've skipped or ignored." />
+                                    <CheckBox MinWidth="0" Margin="0,0,16,4" Content="Protected apps" IsChecked="{Binding ProtectedApps}" ToolTip="Apps guarded against uninstalling by accident." />
+                                    <CheckBox MinWidth="0" Margin="0,0,16,4" Content="App list" IsChecked="{Binding Apps}" ToolTip="The list of apps you have (winget ids), so another PC can install the same ones." />
+                                    <CheckBox MinWidth="0" Margin="0,0,16,4" Content="Phone alerts (the topic is the key to your alerts)" IsChecked="{Binding Alerts}" ToolTip="Your ntfy phone-alert settings, including the topic (the only key to your alerts): only for PCs that are all yours." />
+                                </WrapPanel>
+                            </StackPanel>
+                        </ui:Card>
+
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Appearance="Primary" Command="{Binding SendCommand}" Content="Send this PC's setup" Icon="{ui:SymbolIcon ArrowUpload24}" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" ToolTip="Write this PC's setup into the sync folder now, for your other PCs to take over." />
+                            <ui:Button Margin="8,0,0,0" Command="{Binding GetCommand}" Content="Take over the folder's setup…" Icon="{ui:SymbolIcon ArrowDownload24}" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" ToolTip="Replace this PC's choices with the setup in the sync folder (asks first and shows what changes)." />
+                            <ui:ProgressRing Width="16" Height="16" Margin="12,0,0,0" IsIndeterminate="True" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,20,0,6" Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="By hand" /><ctl:HelpButton Topic="backup-setup-sync" /></StackPanel>
+                        <TextBlock Margin="0,0,0,6" Style="{StaticResource Subtle}" Text="Save the setup as a file to carry on a USB stick or send yourself, or open one from another PC." TextTrimming="None" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Command="{Binding SaveFileCommand}" Content="Save to a file…" Icon="{ui:SymbolIcon DocumentSave24}" ToolTip="Save this PC's setup as a file, to carry on a USB stick or send to yourself." />
+                            <ui:Button Margin="8,0,0,0" Command="{Binding OpenFileCommand}" Content="Open a file…" Icon="{ui:SymbolIcon FolderOpen24}" ToolTip="Open a setup file from another PC and take over its choices (asks first)." />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!--  ===== Your PCs =====  -->
+            <TabItem Header="Your PCs">
+                <ScrollViewer x:Name="PcsScroll" FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,12,24">
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Text="{Binding FleetText}" TextWrapping="Wrap" />
+                            <StackPanel Grid.Column="1" Margin="16,0,0,0" Orientation="Horizontal">
+                                <TextBlock Margin="0,0,10,0" VerticalAlignment="Center" Text="Share this PC's status" />
+                                <ui:ToggleSwitch AutomationProperties.Name="Share this PC's status" IsChecked="{Binding PublishStatus}" ToolTip="Write this PC's status (version, updates waiting, free space, health, last backup) to the sync folder every 30 minutes. No file names or accounts." />
+                            </StackPanel>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Fleet}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource LevelCard}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="260" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding Device}" />
+                                                <TextBlock Style="{StaticResource LevelText}" Text="{Binding Summary}" />
+                                                <TextBlock FontSize="12" Style="{StaticResource Subtle}" Text="{Binding Details}" />
+                                                <TextBlock FontSize="12" Style="{StaticResource Subtle}">
+                                                    <Run Text="{Binding Maintenance, Mode=OneWay}" />
+                                                    <Run Text=" · " />
+                                                    <Run Text="{Binding Backup, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock HorizontalAlignment="Right" FontSize="12" Style="{StaticResource Subtle}" Text="{Binding Seen, StringFormat='seen {0}'}" />
+                                                <ProgressBar Height="5" Margin="0,6,0,4" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Value="{Binding UsedPercent, Mode=OneWay}" />
+                                                <TextBlock HorizontalAlignment="Right" FontSize="12" Text="{Binding Space}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Margin="0,8,0,0" FontSize="12" Style="{StaticResource Subtle}" Text="Each PC writes a short status file (version, updates waiting, free space, health warnings, last backup) into the sync folder. There are no names of your files or accounts in it; your cloud drive (for example Proton Drive), not C.A.R.S., carries it between PCs." TextTrimming="None" TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Page>

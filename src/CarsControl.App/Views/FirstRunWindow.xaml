@@ -1,0 +1,109 @@
+<ui:FluentWindow
+    x:Class="CarsControl.App.Views.FirstRunWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Welcome to C.A.R.S. Control"
+    Width="620"
+    Height="620"
+    ExtendsContentIntoTitleBar="True"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    MinWidth="520"
+    MinHeight="480"
+    ResizeMode="CanResize"
+    ShowInTaskbar="False"
+    WindowBackdropType="Mica"
+    WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="C.A.R.S. Control" ShowMaximize="False" ShowMinimize="False" />
+
+        <Grid Grid.Row="1" Margin="40,8,40,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel>
+                <TextBlock Style="{StaticResource Subtle}" Text="{Binding StepText}" />
+                <TextBlock Margin="0,4,0,0" FontSize="26" FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource Subtle}" Text="{Binding Intro}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" Margin="0,18,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid>
+                <!--  1: this PC  -->
+                <StackPanel Visibility="{Binding Step0, Converter={StaticResource BoolToVisibility}}">
+                    <ComboBox Margin="0,0,0,8" AutomationProperties.Name="Kind of PC" ItemsSource="{Binding PcTypeOptions}" SelectedItem="{Binding PcTypeChoice}" ToolTip="Select the kind of PC for recommendations. This selection does not apply any settings." />
+                    <TextBlock Margin="0,0,0,8" Style="{StaticResource Subtle}" Text="{Binding ProfileAdvice}" TextWrapping="Wrap" />
+                    <ui:Button Margin="0,0,0,16" Command="{Binding UseRecommendedCommand}" Content="Stage recommended choices" ToolTip="Fill the wizard with suggestions for this profile. Review them before Finish; nothing is applied yet." />
+                    <TextBlock FontWeight="SemiBold" Text="Is anything wrong with this PC right now?" />
+                    <TextBlock Margin="0,4,0,10" Style="{StaticResource Subtle}" Text="If you're chasing a crash or a driver problem, these two keep the evidence and the current driver in place. Leave them off otherwise." TextWrapping="Wrap" />
+                    <CheckBox Margin="0,0,0,8" Content="Don't offer driver updates from Windows Update (they're listed, not ticked)" IsChecked="{Binding HoldDrivers}"  ToolTip="Keep driver updates visible but unselected by default; no driver is removed or changed."/>
+                    <CheckBox Margin="0,0,0,8" Content="Keep crash dumps and error reports out of Cleanup" IsChecked="{Binding KeepCrash}"  ToolTip="Leave crash dumps and error reports out of default cleanup selections so they remain available for diagnosis."/>
+                    <CheckBox Margin="0,16,0,0" Content="Start C.A.R.S. Control when I sign in (quietly, in the tray)" IsChecked="{Binding StartWithWindows}"  ToolTip="Start the application quietly in the tray after sign-in so enabled background features can work."/>
+                </StackPanel>
+
+                <!--  2: automation  -->
+                <StackPanel Visibility="{Binding Step1, Converter={StaticResource BoolToVisibility}}">
+                    <CheckBox Margin="0,0,0,2" Content="Enable scheduled updates and cleanup" IsChecked="{Binding MaintenanceOn}" ToolTip="Uses the days, time and categories in Settings > Scheduled maintenance. Existing schedules are preserved." />
+                    <TextBlock Margin="28,0,0,14" Style="{StaticResource Subtle}" Text="Only when you're away, never during a game. Anything that needs administrator rights waits for one approval from you." TextWrapping="Wrap" />
+                    <CheckBox Margin="0,0,0,2" Content="Gaming mode: pause updates and background work while a game runs" IsChecked="{Binding GamingAuto}"  ToolTip="Detect games from your libraries and pause C.A.R.S. background work until they finish."/>
+                    <TextBlock Margin="28,0,0,14" Style="{StaticResource Subtle}" Text="Turns on by itself when a game from Steam, Epic or your other libraries starts, and off after it closes." TextWrapping="Wrap" />
+                    <CheckBox Margin="0,0,0,2" Content="Ask for administrator rights once at sign-in, for Gaming mode" IsChecked="{Binding GamingApprove}" IsEnabled="{Binding GamingAuto}"  ToolTip="Offer one administrator-session approval at sign-in; unattended work never displays a prompt."/>
+                    <TextBlock Margin="28,0,0,0" Style="{StaticResource Subtle}" Text="So no admin prompt ever appears in the middle of a game." TextWrapping="Wrap" />
+                    <CheckBox Margin="0,14,0,2" Content="Restart to finish updates when I'm away" IsChecked="{Binding RestartAway}" ToolTip="Uses your existing restart window and idle requirement, skips games and active work, and shows a cancellable countdown. Configure in Health > Overview." />
+                    <TextBlock Margin="28,0,0,0" Style="{StaticResource Subtle}" Text="Uses the time window in Health > Overview (04:00–07:00 on a new install), after 30 minutes away by default. You can cancel its countdown." TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!--  3: privacy  -->
+                <StackPanel Visibility="{Binding Step2, Converter={StaticResource BoolToVisibility}}">
+                    <CheckBox IsChecked="{Binding PrivacyApply}" IsEnabled="{Binding HasPrivacySwitches}" ToolTip="Apply only the suggested privacy switches for your account. Each change has its own saved Undo on the Privacy page.">
+                        <TextBlock Text="{Binding PrivacyText}" TextWrapping="Wrap" />
+                    </CheckBox>
+                    <TextBlock Margin="28,6,0,0" Style="{StaticResource Subtle}" Text="Each one can be switched back on the Privacy page, which also has the all-users switches (Copilot, Recall, Edge, Office) and removes apps that came with Windows." TextWrapping="Wrap" />
+                    <TextBlock Margin="0,20,0,0" Style="{StaticResource Subtle}" Text="Nothing here touches Windows Defender, SmartScreen, the firewall, UAC (the admin prompt) or Windows Update." TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- Optional features open their existing setup pages only after the review is accepted. -->
+                <StackPanel Visibility="{Binding Step3, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Subtle}" Text="Backups copy only folders you choose to a destination you choose, with older file versions retained. No backup job is created by this wizard." TextWrapping="Wrap" />
+                    <ui:Button Margin="0,12,0,0" Command="{Binding ChooseFollowUpCommand}" CommandParameter="backup" Content="Open backup setup after Finish" ToolTip="After saving the reviewed choices, open Backup &amp; sync > File backups. No files are copied until you configure a job." />
+                    <TextBlock Margin="0,16,0,0" Style="{StaticResource Subtle}" Text="Setup sync uses an ordinary folder, such as a folder in your cloud drive. It shares selected preferences, never your ntfy access token or this PC's private paths." TextWrapping="Wrap" />
+                    <ui:Button Margin="0,12,0,0" Command="{Binding ChooseFollowUpCommand}" CommandParameter="sync" Content="Open setup sync after Finish" ToolTip="Open Backup &amp; sync > Your setup after Finish; choose the folder and what to share there." />
+                    <TextBlock Margin="0,14,0,0" Style="{StaticResource Subtle}" Text="{Binding FollowUpNote}" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Visibility="{Binding Step4, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding SensorStatus}" TextWrapping="Wrap" />
+                    <CheckBox Margin="0,16,0,0" Content="Read CPU and board sensors when available" IsChecked="{Binding BoardSensors}" ToolTip="Reads temperatures, power and fan speeds while Sensors is visible. Uses an already approved admin session; it never installs a driver or prompts by itself." />
+                    <ui:Button Margin="0,16,0,0" Command="{Binding ChooseFollowUpCommand}" CommandParameter="sensors" Content="Open sensor setup after Finish" ToolTip="Open Health > Sensors after Finish. Installing PawnIO requires your separate explicit approval on that page." />
+                    <TextBlock Margin="0,14,0,0" Style="{StaticResource Subtle}" Text="{Binding FollowUpNote}" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Visibility="{Binding Step5, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Subtle}" Text="Alerts go through ntfy, a free app for iPhone and Android. The messages are short and contain no file or app names. It takes about a minute: scan a QR code in Settings." TextWrapping="Wrap" />
+                    <ui:Button Margin="0,16,0,0" Appearance="Primary" Command="{Binding SetUpAlertsCommand}" Content="Open phone alerts after Finish" Icon="{ui:SymbolIcon Phone24}" ToolTip="Open Phone alerts settings after the final review. This button does not enable alerts or send a message." />
+                    <TextBlock Margin="0,14,0,0" Style="{StaticResource Subtle}" Text="{Binding FollowUpNote}" TextWrapping="Wrap" />
+                    <TextBlock Margin="0,16,0,0" Style="{StaticResource Subtle}" Text="Or finish now: Settings › Phone alerts is there whenever you want it. Press Ctrl+K anywhere to search for anything in C.A.R.S." TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Visibility="{Binding Step6, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding ReviewText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+            </ScrollViewer>
+        </Grid>
+
+        <Border Grid.Row="2" Padding="40,14" Background="{DynamicResource ControlFillColorSecondaryBrush}">
+            <Grid>
+                <ui:Button HorizontalAlignment="Left" Appearance="Transparent" Command="{Binding SkipCommand}" Content="Skip all" ToolTip="Keep all current settings, close setup and mark it as seen. Run setup again from Settings > About &amp; updates." />
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <ui:Button Margin="0,0,8,0" Command="{Binding BackCommand}" Content="Back" Visibility="{Binding IsFirst, Converter={StaticResource InverseBoolToVisibility}}"  ToolTip="Return to the previous setup step without applying any choices."/>
+                    <ui:Button MinWidth="100" Appearance="Primary" Command="{Binding NextCommand}" Content="{Binding NextText}" ToolTip="Continue to the next step. Finish applies only the choices shown in the final review." />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

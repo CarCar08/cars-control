@@ -1,0 +1,28 @@
+name: Feature request
+description: Something it should do, or do differently
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation and what got in the way. This is more useful than the feature you imagine.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like it to do?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: How do you do it today?
+      description: Another tool, a script, by hand. It helps to know what "good enough" looks like.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Does it change anything on the PC?
+      description: Anything that deletes, uninstalls or changes Windows settings needs to say what it will do first and be undoable where possible.
+      options:
+        - label: It only reads or reports.
+        - label: It changes things, and I've thought about how it would be undone.

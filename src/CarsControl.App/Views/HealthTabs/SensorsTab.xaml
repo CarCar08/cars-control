@@ -1,0 +1,141 @@
+<UserControl
+    x:Class="CarsControl.App.Views.HealthTabs.SensorsTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctl="clr-namespace:CarsControl.App.Controls"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,12,12,24">
+            <TextBlock Margin="0,0,0,12" Text="Live temperatures, loads and fan speeds. The graphics card needs nothing extra; the processor and motherboard need the optional PawnIO driver." TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Graphics card" /><ctl:HelpButton Topic="health-sensors" /></StackPanel>
+            <TextBlock Margin="0,0,0,8" Style="{StaticResource Subtle}" Text="No admin needed. Updates every 2 seconds while this tab is open." Visibility="{Binding NoGpu, Converter={StaticResource InverseBoolToVisibility}}" />
+            <TextBlock Margin="0,0,0,8" Style="{StaticResource Subtle}" Text="No NVIDIA graphics card was found, so there's nothing to show here." Visibility="{Binding NoGpu, Converter={StaticResource BoolToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Gpus}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Margin="0,0,0,10" Padding="16,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding Driver, StringFormat='Driver {0}'}" />
+                                    <TextBlock Margin="0,8,0,0" Text="{Binding Details}" />
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="140" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource Subtle}" Text="Load" />
+                                        <ProgressBar Grid.Column="1" Height="6" VerticalAlignment="Center" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Maximum="100" Value="{Binding LoadPercent, Mode=OneWay, TargetNullValue=0}" />
+                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" Text="{Binding LoadText}" />
+                                    </Grid>
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="140" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource Subtle}" Text="Video memory" />
+                                        <ProgressBar Grid.Column="1" Height="6" VerticalAlignment="Center" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Maximum="100" Value="{Binding MemoryPercent, Mode=OneWay, TargetNullValue=0}" />
+                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" Text="{Binding Memory}" />
+                                    </Grid>
+                                    <TextBlock Margin="0,6,0,0" Style="{StaticResource Subtle}" Text="{Binding Power, StringFormat='Power draw: {0}'}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="24,0,0,0" HorizontalAlignment="Right">
+                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource BigNumber}" Text="{Binding TempText}" />
+                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource Subtle}" Text="temperature" />
+                                </StackPanel>
+                            </Grid>
+                        </ui:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Margin="0,14,0,8" Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Processor, motherboard and fans" /><ctl:HelpButton Topic="health-pawnio" /></StackPanel>
+            <ui:Card Margin="0,0,0,10" Padding="16,12" Visibility="{Binding NeedsPawnIo, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding PawnIoText}" TextWrapping="Wrap" />
+                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                        <ui:Button Appearance="Primary" Command="{Binding InstallPawnIoCommand}" Content="Install PawnIO" Icon="{ui:SymbolIcon ShieldCheckmark24}" IsEnabled="{Binding BoardBusy, Converter={StaticResource InverseBool}}" ToolTip="Download the pinned official sensor driver, verify its checksum, then request one admin approval to install it." />
+                        <ui:ProgressRing Width="16" Height="16" Margin="12,0,0,0" IsIndeterminate="True" Visibility="{Binding BoardBusy, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <StackPanel Margin="0,0,0,8" Orientation="Horizontal" Visibility="{Binding PawnIoInstalled, Converter={StaticResource BoolToVisibility}}">
+                <ui:Button Command="{Binding ReadBoardNowCommand}" Content="Read CPU &amp; board sensors" Icon="{ui:SymbolIcon Temperature24}" IsEnabled="{Binding BoardBusy, Converter={StaticResource InverseBool}}" ToolTip="Needs admin approval once; the readings then keep updating while this tab is open" />
+                <CheckBox Margin="14,0,0,0" Content="Show every sensor" IsChecked="{Binding ShowAllSensors}"  ToolTip="Include readings normally hidden as implausible or unreported; these values may be inaccurate."/>
+            </StackPanel>
+            <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                <ui:ProgressRing Width="16" Height="16" Margin="0,0,8,0" IsIndeterminate="True" Visibility="{Binding BoardFirstRead, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Style="{StaticResource Subtle}" Text="{Binding BoardStatus}" TextTrimming="None" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!--  the readings people actually look at  -->
+            <ui:Card Margin="0,0,0,10" Padding="16,12" Visibility="{Binding HasBoardData, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel ToolTip="{Binding CpuTempTip}">
+                        <TextBlock Style="{StaticResource Subtle}" Text="Processor" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding CpuTempText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" ToolTip="How much power the processor draws right now. Idle desktops sit around 20-60 W; heavy work or games can use 100 W or more.">
+                        <TextBlock Style="{StaticResource Subtle}" Text="Processor power" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding CpuPowerText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" ToolTip="How busy the processor is, across all its cores.">
+                        <TextBlock Style="{StaticResource Subtle}" Text="Processor load" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding CpuLoadText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" ToolTip="The motherboard's own temperature probe. 25-45 °C is normal; higher means warm air is building up in the case.">
+                        <TextBlock Style="{StaticResource Subtle}" Text="Motherboard" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding BoardTempText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" ToolTip="Fans that are spinning. Headers with nothing plugged in are hidden (they read 0 RPM); Show every sensor lists them.">
+                        <TextBlock Style="{StaticResource Subtle}" Text="Fans" />
+                        <TextBlock Margin="0,6,0,0" Text="{Binding FansText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
+            </ui:Card>
+            <TextBlock Margin="0,0,0,8" FontSize="12" Style="{StaticResource Subtle}" Text="Below: everything the board reports. Board chips give many probes generic names (Temperature #1, Fan #3): which header is which depends on your motherboard's manual. Readings that can't be real (an unconnected probe at 3 °C, an empty fan header) are hidden unless you tick Show every sensor. The range is the lowest and highest seen since the admin helper started." TextTrimming="None" TextWrapping="Wrap" Visibility="{Binding HasBoardData, Converter={StaticResource BoolToVisibility}}" />
+
+            <ItemsControl ItemsSource="{Binding BoardGroups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Margin="0,0,0,10" Padding="16,10">
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Hardware}" />
+                                <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Rows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="100" />
+                                                    <ColumnDefinition Width="170" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding Value}" />
+                                                <TextBlock Grid.Column="2" Style="{StaticResource Subtle}" Text="{Binding Range}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ui:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

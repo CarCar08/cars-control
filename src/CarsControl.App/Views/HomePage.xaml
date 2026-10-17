@@ -1,0 +1,257 @@
+<Page
+    x:Class="CarsControl.App.Views.HomePage"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Home"
+    ScrollViewer.CanContentScroll="False">
+    <Page.Resources>
+        <!--  Equal-height cards with content at the top (they used to be centred at different heights)  -->
+        <Style BasedOn="{StaticResource {x:Type ui:CardAction}}" TargetType="ui:CardAction">
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+        <Style x:Key="CardDetail" BasedOn="{StaticResource Subtle}" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextTrimming" Value="None" />
+        </Style>
+    </Page.Resources>
+    <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="32,24,32,32" MaxWidth="1700">
+            <!--  Header  -->
+            <Grid Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource PageTitle}" Text="{Binding PcName}" />
+                    <TextBlock Style="{StaticResource Subtle}" Text="Updates, storage and the few things that need your attention." TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                    <!--  Gaming mode: lights up when a game runs; click to switch it on or off yourself  -->
+                    <ToggleButton
+                        Margin="0,0,12,0"
+                        Padding="10,4"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="Gaming mode"
+                        Command="{Binding ToggleGamingCommand}"
+                        IsChecked="{Binding IsGaming, Mode=OneWay}"
+                        ToolTip="While on, C.A.R.S. pauses its background work and Windows Update. Turns on by itself when a game starts.">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Margin="0,0,6,0" FontSize="14" Symbol="Games24" />
+                            <TextBlock FontSize="12" Text="{Binding GamingText}" />
+                        </StackPanel>
+                    </ToggleButton>
+                    <!--  Proton VPN: is your traffic really going through it?  -->
+                    <ui:Button
+                        x:Name="VpnChip"
+                        Margin="0,0,12,0"
+                        Padding="10,4"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="VPN status"
+                        Command="{Binding OpenVpnCommand}"
+                        ToolTip="Proton VPN. Click for the details (Health › Network)."
+                        Visibility="{Binding ShowVpn, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon x:Name="VpnIcon" Margin="0,0,6,0" FontSize="14">
+                                <ui:SymbolIcon.Style>
+                                    <!--  Defaults as setters: local values would beat the trigger (the chip stayed amber with a crossed shield).  -->
+                                    <Style TargetType="ui:SymbolIcon">
+                                        <Setter Property="Symbol" Value="ShieldDismiss24" />
+                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding VpnOk}" Value="True">
+                                                <Setter Property="Symbol" Value="ShieldCheckmark24" />
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:SymbolIcon.Style>
+                            </ui:SymbolIcon>
+                            <TextBlock FontSize="12" Text="{Binding VpnText}" />
+                        </StackPanel>
+                    </ui:Button>
+                    <Border
+                        Margin="0,0,12,0"
+                        Padding="10,4"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="12"
+                        Visibility="{Binding AdminSessionActive, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Margin="0,0,6,0" FontSize="14" Symbol="ShieldCheckmark24" />
+                            <TextBlock FontSize="12" Text="Admin session active" />
+                        </StackPanel>
+                    </Border>
+                    <ui:ProgressRing Width="20" Height="20" Margin="0,0,12,0" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+                    <ui:Button
+                        Padding="18,10"
+                        Appearance="Primary"
+                        Click="OnUpdateEverything"
+                        Content="Update everything"
+                        FontSize="15"
+                        Icon="{ui:SymbolIcon ArrowSync24}"
+                        ToolTip="Refresh stale sources, then install every default-ticked update (one admin prompt at most)" />
+                </StackPanel>
+            </Grid>
+
+            <!--  Needs attention: approvals waiting, full drives, failures. Hidden when there's nothing.  -->
+            <ItemsControl Margin="0,0,0,12" AutomationProperties.Name="Needs attention" ItemsSource="{Binding Attention}" Visibility="{Binding AttentionCount, Converter={StaticResource ZeroToCollapsed}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Margin="0,0,0,8" Padding="16,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ui:SymbolIcon x:Name="Icon" Margin="0,0,14,0" VerticalAlignment="Center" FontSize="22" Foreground="{DynamicResource SystemFillColorCautionBrush}" Symbol="{Binding Icon}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding Detail}" TextWrapping="Wrap" Visibility="{Binding Detail, Converter={StaticResource NullToCollapsed}}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <ui:Button Margin="0,0,8,0" Appearance="Primary" Command="{Binding DataContext.RunAttentionCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="{Binding}" Content="{Binding ActionText}" ToolTip="{Binding Detail}" Visibility="{Binding HasAction, Converter={StaticResource BoolToVisibility}}" />
+                                    <ui:Button Command="{Binding DataContext.SecondaryAttentionCommand, RelativeSource={RelativeSource AncestorType=Page}}" CommandParameter="{Binding}" Content="{Binding SecondaryLabel}" ToolTip="Dismiss or postpone this notice; the underlying setting or result is kept." />
+                                </StackPanel>
+                            </Grid>
+                        </ui:Card>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  Cards  -->
+            <UniformGrid Margin="-6,0" Columns="4">
+                <ui:CardAction Margin="6" Padding="20" AutomationProperties.Name="Updates ready" Click="OnUpdatesClick" ToolTip="Open Refresh to review the available updates and their sources before installing anything.">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Subtle}" Text="Updates ready" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding UpdateCount}" />
+                        <TextBlock Style="{StaticResource CardDetail}" Text="{Binding UpdateDetail}" ToolTip="{Binding UpdateDetail, Converter={StaticResource EmptyToNull}}" />
+                        <TextBlock FontSize="11" Style="{StaticResource CardDetail}" Text="{Binding UpdateChecked}" />
+                    </StackPanel>
+                </ui:CardAction>
+                <ui:CardAction Margin="6" Padding="20" AutomationProperties.Name="Reclaimable space" Click="OnCleanupClick" ToolTip="Estimated space in the selected cleanup categories. Open Cleanup to review what can be removed before running it.">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Subtle}" Text="Safe to clean" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding Reclaimable}" />
+                        <TextBlock Style="{StaticResource CardDetail}" Text="{Binding ReclaimableDetail}" />
+                        <TextBlock FontSize="11" Style="{StaticResource Subtle}" Text="temp files, caches · Cleanup page" />
+                    </StackPanel>
+                </ui:CardAction>
+                <ui:CardAction Margin="6" Padding="20" AutomationProperties.Name="Installed apps" Click="OnAppsClick" ToolTip="Open your installed-app list to review sizes, update sources and uninstall options. Protected apps cannot be selected for removal.">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Subtle}" Text="Installed apps" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding AppCount}" />
+                        <TextBlock Style="{StaticResource CardDetail}" Text="{Binding AppDetail}" />
+                    </StackPanel>
+                </ui:CardAction>
+                <ui:CardAction Margin="6" Padding="20" AutomationProperties.Name="Games" Click="OnStorageClick" ToolTip="Open Storage to review game libraries, sizes, last-played dates and verified move options.">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Subtle}" Text="Games" />
+                        <TextBlock Style="{StaticResource BigNumber}" Text="{Binding GameCount}" />
+                        <TextBlock Style="{StaticResource CardDetail}" Text="{Binding GamesDetail}" ToolTip="{Binding GamesDetail, Converter={StaticResource EmptyToNull}}" />
+                    </StackPanel>
+                </ui:CardAction>
+            </UniformGrid>
+
+            <!--  Scheduled maintenance  -->
+            <ui:Card Margin="0,16,0,0" Padding="16,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Margin="0,0,14,0" VerticalAlignment="Center" FontSize="20" Symbol="CalendarSync24" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding MaintenanceLast}" TextTrimming="CharacterEllipsis" ToolTip="{Binding MaintenanceLast}" />
+                        <TextBlock Style="{StaticResource Subtle}" Text="{Binding MaintenanceNext}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                        <ui:ProgressRing Width="16" Height="16" Margin="0,0,10,0" IsIndeterminate="True" Visibility="{Binding MaintenanceRunning, Converter={StaticResource BoolToVisibility}}" />
+                        <ui:Button Margin="0,0,8,0" Command="{Binding RunMaintenanceCommand}" Content="Run now" ToolTip="Updates and cleanup from your maintenance settings (asks once if admin is needed)" />
+                        <ui:Button Appearance="Transparent" Click="OnMaintenanceSettings" Content="Schedule" ToolTip="Review the maintenance days, time, idle requirement and selected update/cleanup categories." />
+                    </StackPanel>
+                </Grid>
+            </ui:Card>
+
+            <!--  Drives  -->
+            <TextBlock Margin="0,28,0,8" Style="{StaticResource SectionTitle}" Text="Drives" />
+            <ItemsControl ItemsSource="{Binding Drives}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Margin="0,0,0,8" Padding="20,14" ToolTip="Used space includes everything Windows reports on this drive. The free-space figure is available for new files; warnings indicate a nearly full drive.">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock VerticalAlignment="Center" FontSize="22" FontWeight="SemiBold" Text="{Binding Letter}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Label}" />
+                                            <TextBlock Margin="12,0,0,0" FontSize="12" Style="{StaticResource Subtle}" Text="{Binding Note}" Visibility="{Binding HasNote, Converter={StaticResource BoolToVisibility}}" />
+                                        </StackPanel>
+                                        <TextBlock HorizontalAlignment="Right" Style="{StaticResource Subtle}" Text="{Binding UsedText}" />
+                                    </Grid>
+                                    <!--  Neutral by default: this PC's accent is red, which made healthy drives look alarming  -->
+                                    <ProgressBar x:Name="Bar" Height="6" Margin="0,8,0,0" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Maximum="100" Value="{Binding UsedPercent, Mode=OneWay}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" MinWidth="110" Margin="20,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="Free" FontWeight="SemiBold" Text="{Binding FreeText}" TextAlignment="Right" />
+                                    <TextBlock x:Name="Warn" FontSize="12" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Text="Almost full" TextAlignment="Right" Visibility="Collapsed" />
+                                </StackPanel>
+                            </Grid>
+                        </ui:Card>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCritical}" Value="True">
+                                <Setter TargetName="Bar" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                <Setter TargetName="Free" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                <Setter TargetName="Warn" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                <Setter TargetName="Bar" Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  Recent activity  -->
+            <Grid Margin="0,20,0,8">
+                <TextBlock Style="{StaticResource SectionTitle}" Text="Recent activity" />
+                <ui:Button HorizontalAlignment="Right" Appearance="Transparent" Click="OnHistoryClick" Content="All history" ToolTip="Review completed operations and their verified results; restore supported quarantined items there." />
+            </Grid>
+            <TextBlock Style="{StaticResource Subtle}" Text="Nothing yet — updates, uninstalls and cleanups you run here show up in this list." Visibility="{Binding HasActivity, Converter={StaticResource InverseBoolToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Activity}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="100" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource Subtle}" Text="{Binding When}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Title}" ToolTip="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource Subtle}" Text="{Binding What}" />
+                            <TextBlock x:Name="S" Grid.Column="3" Text="{Binding Status}" />
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Failed}" Value="True">
+                                <Setter TargetName="S" Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

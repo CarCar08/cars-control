@@ -1,0 +1,14 @@
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+TestResults/
+*.binlog
+
+# UI audit output (screenshots can show personal files and apps)
+tools/ui-audit/screens/
+tools/ui-audit/last-report.txt
+artifacts*/
+tools/ui-audit/last-keyboard-report.txt

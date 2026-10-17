@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(CarsTfm)</TargetFramework>
+    <RootNamespace>CarsControl.Core</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Project the winget COM API (Microsoft.Management.Deployment) from its .winmd.
+         "local" resolves Windows.Foundation etc. from C:\Windows\System32\WinMetadata,
+         since no Windows SDK / Visual Studio is installed on this machine. -->
+    <CsWinRTIncludes>Microsoft.Management.Deployment</CsWinRTIncludes>
+    <CsWinRTWindowsMetadata>local</CsWinRTWindowsMetadata>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CsWinRTInputs Include="..\..\lib\Microsoft.Management.Deployment.winmd" />
+    <!-- Must sit next to the exe: an unpackaged process has no package graph, so COM marshals the
+         winget interfaces by locating this metadata file in the app directory (RoGetMetaDataFile).
+         Without it, QueryInterface on the OOP server fails with 0x80073D54 (no package identity). -->
+    <None Include="..\..\lib\Microsoft.Management.Deployment.winmd" Link="Microsoft.Management.Deployment.winmd" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageReference Include="System.Management" Version="10.0.2" />
+    <!-- CPU, board and fan sensors. Used only inside the elevated helper (with the PawnIO driver). MPL-2.0. -->
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CarsControl.Contracts\CarsControl.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CarsControl.Tests" />
+  </ItemGroup>
+</Project>

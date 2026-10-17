@@ -1,0 +1,134 @@
+<UserControl
+    x:Class="CarsControl.App.Views.HealthTabs.SleepBootTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctl="clr-namespace:CarsControl.App.Controls"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,12,12,24">
+            <TextBlock Margin="0,0,0,12" Text="Freezes, how the PC sleeps and wakes, and what slows start-up and shut-down down: the place to look when the PC hangs or wakes slowly." TextWrapping="Wrap" />
+            <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding SleepHeadline}" TextWrapping="Wrap" />
+            <TextBlock Margin="0,2,0,10" Style="{StaticResource Subtle}" Text="{Binding SleepSummary}" TextTrimming="None" TextWrapping="Wrap" />
+
+            <!--  freezes  -->
+            <StackPanel Margin="0,4,0,6" Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Freezes" /><ctl:HelpButton Topic="health-freezes" /></StackPanel>
+            <TextBlock Margin="0,0,0,6" Style="{StaticResource Subtle}" Text="Windows' clock stops when the whole PC freezes and catches up afterwards, so each freeze is measured exactly." TextTrimming="None" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding StallRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding When}" />
+                            <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding Length}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  sleeps  -->
+            <StackPanel Margin="0,18,0,6" Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Sleep and wake-up" /><ctl:HelpButton Topic="health-sleep" /></StackPanel>
+            <ItemsControl ItemsSource="{Binding SleepRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding When}" />
+                            <TextBlock Grid.Column="1" Text="{Binding State}" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource Subtle}" Text="{Binding Slept}" />
+                            <TextBlock Grid.Column="3" Text="{Binding Resume, StringFormat='woke in {0}'}" />
+                            <TextBlock Grid.Column="4" Style="{StaticResource Subtle}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Why, StringFormat='Went to sleep because of: {0}'}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  drivers that stopped a sleep  -->
+            <TextBlock Margin="0,18,0,6" Style="{StaticResource SectionTitle}" Text="Drivers that stopped the PC from sleeping" />
+            <ItemsControl ItemsSource="{Binding BlockRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Margin="0,2" Text="{Binding}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  what's keeping it awake  -->
+            <TextBlock Margin="0,18,0,6" Style="{StaticResource SectionTitle}" Text="What's keeping the PC awake right now" />
+            <StackPanel Margin="0,0,0,6" Orientation="Horizontal">
+                <ui:Button Command="{Binding ReadPowerRequestsCommand}" Content="Check now" Icon="{ui:SymbolIcon PlugConnected24}" IsEnabled="{Binding SleepBusy, Converter={StaticResource InverseBool}}" ToolTip="Asks Windows with admin approval (it only lists names)" />
+                <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Subtle}" Text="{Binding PowerStatus}" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding PowerRequestRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock FontWeight="SemiBold" Text="{Binding Label}" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource Subtle}" Text="{Binding Value}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  start-up times  -->
+            <TextBlock Margin="0,18,0,6" Style="{StaticResource SectionTitle}" Text="Start-up and shut-down times" />
+            <StackPanel Margin="0,0,0,6" Orientation="Horizontal">
+                <ui:Button Command="{Binding ReadBootTimesCommand}" Content="Read start-up times" Icon="{ui:SymbolIcon Timer24}" IsEnabled="{Binding SleepBusy, Converter={StaticResource InverseBool}}" ToolTip="Windows keeps these in a log only administrators can read" />
+                <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Subtle}" Text="{Binding BootStatus}" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding BootRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding When}" />
+                            <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding Total}" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource Subtle}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Margin="0,10,0,4" FontWeight="SemiBold" Text="What slowed them down" Visibility="{Binding SlowItemRows.Count, Converter={StaticResource ZeroToCollapsed}}" />
+            <ItemsControl ItemsSource="{Binding SlowItemRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="300" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource Subtle}" Text="{Binding Kind}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2" Text="{Binding Cost}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Margin="0,10,0,4" FontWeight="SemiBold" Text="Shut-down times" Visibility="{Binding ShutdownRows.Count, Converter={StaticResource ZeroToCollapsed}}" />
+            <ItemsControl ItemsSource="{Binding ShutdownRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Margin="0,2" Text="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

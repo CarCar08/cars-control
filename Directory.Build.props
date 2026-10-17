@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    Target .NET 10 when the .NET 10 SDK (MSBuild 18) is installed, otherwise fall back to
+    .NET 8 so the project still builds on the SDK that ships on this machine today.
+    The windows10.0.19041.0 suffix pulls in the WinRT projections (PackageManager, toasts).
+  -->
+  <PropertyGroup>
+    <CarsTfmBase Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">net10.0</CarsTfmBase>
+    <CarsTfmBase Condition="'$(CarsTfmBase)' == ''">net8.0</CarsTfmBase>
+    <CarsTfm>$(CarsTfmBase)-windows10.0.19041.0</CarsTfm>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+
+    <Company>C.A.R.S. Control contributors</Company>
+    <Product>C.A.R.S. Control</Product>
+    <Version>0.9.0</Version>
+  </PropertyGroup>
+</Project>

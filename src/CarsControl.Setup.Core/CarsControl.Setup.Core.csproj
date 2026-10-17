@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Logic shared by the installer (net48) and the app (net10): versions, payload manifest and checks,
+       .NET runtime detection and download metadata, release parsing, the folder swap with rollback.
+       netstandard2.0 so a future macOS/Linux setup can reuse it too. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>CarsControl.Setup</RootNamespace>
+    <RuntimeIdentifier></RuntimeIdentifier>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <SupportedOSPlatformVersion></SupportedOSPlatformVersion>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CarsControl.Tests" />
+  </ItemGroup>
+</Project>

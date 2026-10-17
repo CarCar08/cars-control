@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The installer: CarsControl-Setup.exe. Built on .NET Framework 4.8 (every Windows 10/11 already has it), so
+    it runs on a PC that doesn't have .NET 10 yet and can install it. One file: the app's files travel inside
+    it as payload.zip, and every library it uses is embedded and loaded by Embedded.cs.
+
+    The release build (scripts\build-release.ps1) passes -p:PayloadZip=... -p:PayloadJson=...; a plain
+    build has no payload and Setup says so (handy for working on the wizard itself).
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>CarsControl-Setup</AssemblyName>
+    <RootNamespace>CarsControl.SetupApp</RootNamespace>
+    <RuntimeIdentifier></RuntimeIdentifier>
+    <SupportedOSPlatformVersion></SupportedOSPlatformVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\CarsControl.App\Assets\cars.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Product>C.A.R.S. Control Setup</Product>
+    <Description>Installs, updates, repairs and removes C.A.R.S. Control</Description>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <ProjectReference Include="..\CarsControl.Setup.Core\CarsControl.Setup.Core.csproj" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Management" />
+    <Reference Include="Microsoft.CSharp" />
+    <Resource Include="..\CarsControl.App\Assets\cars.png" Link="Assets\cars.png" />
+    <!-- Test runs open on the TV, not on the monitor you're gaming on: the same helper the app's test copies use. -->
+    <Compile Include="..\CarsControl.App\Services\DevWindowPlacement.cs" Link="DevWindowPlacement.cs" />
+  </ItemGroup>
+
+  <!-- The payload: the app's files (zip) and their hashes (json), embedded by the release build. -->
+  <ItemGroup Condition="'$(PayloadZip)' != '' And Exists('$(PayloadZip)') And Exists('$(PayloadJson)')">
+    <EmbeddedResource Include="$(PayloadZip)" LogicalName="payload.zip" />
+    <EmbeddedResource Include="$(PayloadJson)" LogicalName="payload.json" />
+  </ItemGroup>
+
+  <!-- Every library Setup needs travels inside the exe as lib/Name.dll (see Embedded.cs). -->
+  <Target Name="EmbedLibraries" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <_LibToEmbed Include="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.dll'" />
+      <EmbeddedResource Include="@(_LibToEmbed)" LogicalName="lib/%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
+</Project>

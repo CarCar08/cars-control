@@ -1,0 +1,127 @@
+<UserControl
+    x:Class="CarsControl.App.Views.HealthTabs.NetworkTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctl="clr-namespace:CarsControl.App.Controls"
+    xmlns:conv="clr-namespace:CarsControl.App.Converters"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <UserControl.Resources>
+        <conv:BindingProxy x:Key="Proxy" Data="{Binding}" />
+        <!--  The VPN card's edge follows VpnLevel (the shared LevelCard style reads a "Level" property)  -->
+        <Style x:Key="VpnCard" BasedOn="{StaticResource LevelCard}" TargetType="Border">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding VpnLevel}" Value="Good">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding VpnLevel}" Value="Watch">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,12,12,24">
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Text="{Binding NetIntro}" TextWrapping="Wrap" />
+                <StackPanel Grid.Column="1" Margin="16,0,0,0" Orientation="Horizontal">
+                    <ui:ProgressRing Width="16" Height="16" Margin="0,0,10,0" IsIndeterminate="True" Visibility="{Binding NetBusy, Converter={StaticResource BoolToVisibility}}" />
+                    <ui:Button Command="{Binding RefreshNetworkCommand}" Content="Re-check" Icon="{ui:SymbolIcon ArrowClockwise24}" IsEnabled="{Binding NetBusy, Converter={StaticResource InverseBool}}" ToolTip="Read the network state again." />
+                </StackPanel>
+            </Grid>
+            <!--  Proton VPN  -->
+            <Border Style="{StaticResource VpnCard}" Visibility="{Binding ProtonInstalled, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="Proton VPN" />
+                    <TextBlock Text="{Binding VpnText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!--  Tailscale  -->
+            <ui:Card Margin="0,0,0,10" Padding="16,12" Visibility="{Binding TailscaleInstalled, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="Tailscale" />
+                    <TextBlock Text="{Binding TailscaleText}" TextWrapping="Wrap" />
+                    <TextBlock Margin="0,8,0,0" Text="{Binding ExitNodeText}" TextWrapping="Wrap" Visibility="{Binding ExitNodeText, Converter={StaticResource EmptyToCollapsed}}" />
+                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal" Visibility="{Binding TailscaleInstalled, Converter={StaticResource BoolToVisibility}}">
+                        <ui:Button Command="{Binding RunNetCheckCommand}" Content="Test direct connections" Icon="{ui:SymbolIcon Beaker24}" IsEnabled="{Binding NetBusy, Converter={StaticResource InverseBool}}" ToolTip="Checks for Strict NAT, the thing that forces Tailscale onto relays when Proton VPN is on" />
+                    </StackPanel>
+                    <TextBlock Margin="0,8,0,0" Text="{Binding NetCheckText}" TextWrapping="Wrap" Visibility="{Binding NetCheckText, Converter={StaticResource EmptyToCollapsed}}" />
+                </StackPanel>
+            </ui:Card>
+
+            <!--  devices on the tailnet  -->
+            <Grid Margin="0,6,0,6" Visibility="{Binding PeerRows.Count, Converter={StaticResource ZeroToCollapsed}}">
+                <StackPanel Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Your other devices" /><ctl:HelpButton Topic="health-network" /></StackPanel>
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Style="{StaticResource Subtle}" Text="Test port" />
+                    <ComboBox MinWidth="80" AutomationProperties.Name="Port to test" ItemsSource="{Binding ProbePorts}" SelectedItem="{Binding ProbePort}" ToolTip="The port the Test buttons try: 22 SSH, 445 file sharing, 3389 Remote Desktop, 80/443 web." />
+                </StackPanel>
+            </Grid>
+            <ItemsControl ItemsSource="{Binding PeerRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,4" Padding="14,8" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock FontSize="12" Style="{StaticResource Subtle}">
+                                        <Run Text="{Binding Os, Mode=OneWay}" />
+                                        <Run Text=" · " />
+                                        <Run Text="{Binding Address, Mode=OneWay}" />
+                                        <Run Text="{Binding FlagsText, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <TextBlock FontSize="12" Text="{Binding ProbeResult}" Visibility="{Binding ProbeResult, Converter={StaticResource NullToCollapsed}}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding Path}" />
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource Subtle}" Text="{Binding Seen, StringFormat='seen {0}'}" />
+                                <ui:Button
+                                    Grid.Column="3"
+                                    Padding="8,3"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{Binding Name, StringFormat='Test a port on {0}'}"
+                                    Command="{Binding Data.ProbePeerCommand, Source={StaticResource Proxy}}"
+                                    CommandParameter="{Binding}"
+                                    Content="Test"
+                                    IsEnabled="{Binding Online}"
+                                    ToolTip="Opens a TCP connection to the chosen port (a ping would say nothing: some devices ignore pings but accept connections)" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  adapters  -->
+            <TextBlock Margin="0,18,0,6" Style="{StaticResource SectionTitle}" Text="Connections on this PC" />
+            <ItemsControl ItemsSource="{Binding AdapterRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="230" />
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ui:SymbolIcon FontSize="14" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Symbol="ArrowCircleRight24" ToolTip="Internet traffic leaves through this one" Visibility="{Binding CarriesTraffic, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2" Text="{Binding State}" />
+                            <TextBlock Grid.Column="3" Style="{StaticResource Subtle}" Text="{Binding Speed}" />
+                            <TextBlock Grid.Column="4" Style="{StaticResource Subtle}" Text="{Binding Description}" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>$(CarsTfm)</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>CarsControl</AssemblyName>
+    <RootNamespace>CarsControl.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\cars.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\cars.ico" />
+    <Resource Include="Assets\cars.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="WPF-UI.Tray" Version="4.3.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CarsControl.Core\CarsControl.Core.csproj" />
+    <ProjectReference Include="..\CarsControl.Setup.Core\CarsControl.Setup.Core.csproj" />
+    <!-- Referenced so CarsControl.Helper.exe is built into the same folder: the helper only accepts a
+         parent CarsControl.exe that sits next to it. -->
+    <ProjectReference Include="..\CarsControl.Helper\CarsControl.Helper.csproj" />
+  </ItemGroup>
+</Project>

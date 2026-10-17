@@ -1,0 +1,97 @@
+<UserControl
+    x:Class="CarsControl.App.Views.StorageTabs.DuplicatesTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctl="clr-namespace:CarsControl.App.Controls"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid Margin="0,12,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Margin="0,0,0,6" Style="{StaticResource Subtle}" Text="Finds files with exactly the same content in the folders you tick. Files that belong to an installed app, a game or a vault, and online-only cloud files, are never looked at." TextTrimming="None" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding Folders}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox MinWidth="0" Margin="0,0,16,4" AutomationProperties.Name="{Binding Label}" Content="{Binding Label}" IsChecked="{Binding IsSelected}" ToolTip="{Binding Path}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Margin="0,4,0,8" Orientation="Horizontal">
+                <ui:Button Command="{Binding AddFolderCommand}" Content="Add a folder or drive…" Icon="{ui:SymbolIcon FolderAdd24}" ToolTip="Add a folder or a whole drive to search for duplicates." />
+                <TextBlock Margin="16,0,6,0" VerticalAlignment="Center" Text="Ignore files under" />
+                <ComboBox MinWidth="70" AutomationProperties.Name="Smallest file to look at, in megabytes" ItemsSource="{Binding MinSizes}" SelectedItem="{Binding MinMegabytes}" ToolTip="Files smaller than this are ignored, so thousands of tiny duplicates don't bury the big ones." />
+                <TextBlock Margin="6,0,16,0" VerticalAlignment="Center" Text="MB" />
+                <ui:Button Appearance="Primary" Command="{Binding FindCommand}" Content="Find duplicates" Icon="{ui:SymbolIcon Search24}" IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBool}}" ToolTip="Compare the files in the folders above. Nothing is changed until you recycle." />
+                <ui:Button Margin="8,0,0,0" Command="{Binding CancelFindCommand}" Content="Stop" Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}" ToolTip="Stop the search." />
+                <ui:ProgressRing Width="16" Height="16" Margin="12,0,0,0" IsIndeterminate="True" Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+            <TextBlock Margin="0,0,0,6" Text="{Binding Status}" TextWrapping="Wrap" />
+            <ui:InfoBar ctl:Notice.AutoDismiss="True" Margin="0,0,0,6" IsClosable="True" IsOpen="{Binding Banner, Converter={StaticResource OpenWhileSet}, Mode=TwoWay}" Message="{Binding Banner}" Severity="{Binding BannerKind, Converter={StaticResource NoticeSeverity}}" Visibility="{Binding Banner, Converter={StaticResource NullToCollapsed}}" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+            <ItemsControl Margin="0,0,12,0" ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Margin="0,0,0,8" Padding="14,10">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Margin="12,0,0,0" Style="{StaticResource Subtle}" Text="{Binding Detail}" />
+                                </StackPanel>
+                                <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Files}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="110" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <RadioButton MinWidth="0" VerticalAlignment="Center" AutomationProperties.Name="{Binding Path, StringFormat='Keep {0}'}" Content="Keep this" IsChecked="{Binding Keep}" ToolTip="Keep this duplicate as the original; the other copies remain selected only for your review." />
+                                                <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding Path}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}" />
+                                                <TextBlock Grid.Column="2" Margin="8,0" VerticalAlignment="Center" Style="{StaticResource Subtle}" Text="{Binding Modified}" />
+                                                <ui:Button Grid.Column="3" Padding="6,2" Appearance="Transparent" AutomationProperties.Name="{Binding Path, StringFormat='Show {0}'}" Command="{Binding ShowCommand}" Icon="{ui:SymbolIcon Folder24}" ToolTip="Show in its folder" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ui:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <ui:Card Grid.Row="2" Margin="0,10,0,0" Padding="16,10" Visibility="{Binding Groups.Count, Converter={StaticResource ZeroToCollapsed}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Which copy to keep" />
+                        <ComboBox MinWidth="280" AutomationProperties.Name="Which copy to keep" ItemsSource="{Binding Rules}" SelectedItem="{Binding Rule}" ToolTip="In each group, keep the newest copy, the oldest, or the one in a folder you choose; the others are ticked to recycle." />
+                        <ui:Button Margin="8,0,0,0" Command="{Binding ChooseKeepFolderCommand}" Content="{Binding KeepFolder, TargetNullValue='Choose folder…'}" Visibility="{Binding ShowKeepFolder, Converter={StaticResource BoolToVisibility}}" ToolTip="Pick the folder whose copies should be kept." />
+                    </StackPanel>
+                    <TextBlock Margin="0,4,0,0" Style="{StaticResource Subtle}" Text="{Binding Summary}" TextTrimming="None" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                    <ui:ProgressRing Width="16" Height="16" Margin="0,0,10,0" IsIndeterminate="True" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+                    <ui:Button Appearance="Danger" Command="{Binding RecycleCommand}" Content="Recycle the extra copies" Icon="{ui:SymbolIcon Delete24}" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" ToolTip="Send the ticked extra copies to the Recycle Bin (the list and the space freed are shown first)." />
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+    </Grid>
+</UserControl>

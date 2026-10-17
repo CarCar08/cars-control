@@ -1,0 +1,136 @@
+<UserControl
+    x:Class="CarsControl.App.Views.HealthTabs.OverviewTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctl="clr-namespace:CarsControl.App.Controls"
+    xmlns:conv="clr-namespace:CarsControl.App.Converters"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <UserControl.Resources>
+        <conv:BindingProxy x:Key="Proxy" Data="{Binding}" />
+    </UserControl.Resources>
+    <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,12,12,24">
+            <TextBlock Margin="0,0,0,10" FontSize="20" FontWeight="SemiBold" Text="{Binding Headline}" />
+
+            <!--  what needs attention  -->
+            <ItemsControl ItemsSource="{Binding Findings}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource LevelCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding Detail}" TextTrimming="None" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ui:Button
+                                    Grid.Column="1"
+                                    Margin="12,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Appearance="Transparent"
+                                    AutomationProperties.Name="{Binding Title, StringFormat='Show details: {0}'}"
+                                    Command="{Binding Data.ShowFindingCommand, Source={StaticResource Proxy}}"
+                                    CommandParameter="{Binding}"
+                                    Content="{Binding Area}"
+                                    Icon="{ui:SymbolIcon ChevronRight24}"
+                                    ToolTip="Open this tab" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  this PC  -->
+            <StackPanel Margin="0,14,0,8" Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="This PC" /><ctl:HelpButton Topic="health-overview" /></StackPanel>
+            <ui:Card Padding="16,8">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding Specs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding Label}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ui:Button Margin="0,8,0,4" Padding="8,3" HorizontalAlignment="Left" Appearance="Transparent" Command="{Binding OpenBoardSupportCommand}" Content="Look up this board's BIOS and drivers" Icon="{ui:SymbolIcon Open24}" Visibility="{Binding CanOpenBoardSupport, Converter={StaticResource BoolToVisibility}}" ToolTip="Search the web for your motherboard's BIOS and driver page (opens your browser)." />
+                </StackPanel>
+            </ui:Card>
+
+            <!--  battery (laptops only)  -->
+            <ui:Card Margin="0,12,0,0" Padding="16,10" Visibility="{Binding HasBattery, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="Battery" />
+                    <TextBlock Text="{Binding BatteryText}" TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource Subtle}" Text="{Binding BatteryVerdict}" TextTrimming="None" TextWrapping="Wrap" />
+                </StackPanel>
+            </ui:Card>
+
+            <!--  restart when away  -->
+            <StackPanel Margin="0,18,0,8" Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Restart when I'm away" /><ctl:HelpButton Topic="health-restart-away" /></StackPanel>
+            <ui:Card Padding="16,12">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Text="Finish updates that need a restart at a quiet time" />
+                            <TextBlock Style="{StaticResource Subtle}" Text="{Binding RestartText}" TextTrimming="None" TextWrapping="Wrap" />
+                        </StackPanel>
+ <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal"><ctl:RecommendedBadge Item="RestartAway" /><ui:ToggleSwitch AutomationProperties.Name="Restart when I'm away" VerticalAlignment="Center" IsChecked="{Binding RestartAway}"  ToolTip="Finish a pending update restart only in the configured time window, after the idle requirement and a cancellable countdown."/></StackPanel>
+                    </Grid>
+                    <StackPanel Margin="0,10,0,0" IsEnabled="{Binding RestartAway}" Orientation="Horizontal">
+                        <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Not before" />
+                        <ComboBox MinWidth="90" AutomationProperties.Name="Earliest restart time" ItemsSource="{Binding RestartTimes}" SelectedItem="{Binding RestartTime}" ToolTip="The restart only happens after this time of night (and within three hours of it)." />
+                        <TextBlock Margin="16,0,8,0" VerticalAlignment="Center" Text="and only after I've been away" />
+                        <ComboBox MinWidth="80" AutomationProperties.Name="Minutes away" ItemsSource="{Binding RestartIdleChoices}" SelectedItem="{Binding RestartIdleMinutes}" ToolTip="And only after nobody has touched the keyboard or mouse for this long." />
+                        <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="minutes" />
+                    </StackPanel>
+                    <TextBlock Margin="0,8,0,0" FontSize="12" Style="{StaticResource Subtle}" Text="Never during a game or with something full screen. A notification counts down 5 minutes first, and Cancel stops it." TextTrimming="None" TextWrapping="Wrap" />
+                </StackPanel>
+            </ui:Card>
+
+            <!--  safety net  -->
+            <StackPanel Margin="0,18,0,8" Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Safety net" /><ctl:HelpButton Topic="health-restore-points" /></StackPanel>
+            <ui:Card Padding="16,12">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Text="A restore point before risky changes" />
+                            <TextBlock Style="{StaticResource Subtle}" Text="Before removing old drivers, driver and feature updates, and privacy batches." TextTrimming="None" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center" AutomationProperties.Name="Restore point before risky changes" IsChecked="{Binding RestorePointsBefore}" ToolTip="Make a restore point before removing old drivers, installing driver or feature updates, and privacy batches." />
+                    </Grid>
+                    <TextBlock Margin="0,8,0,0" Text="{Binding ProtectionText}" TextWrapping="Wrap" />
+                    <ui:Button Margin="0,8,0,0" HorizontalAlignment="Left" Command="{Binding EnableProtectionCommand}" Content="Turn on System Protection" Icon="{ui:SymbolIcon ShieldCheckmark24}" Visibility="{Binding ProtectionOn, Converter={StaticResource InverseBoolToVisibility}}" ToolTip="Turn on System Protection for C: so restore points can be made (admin approval once)." />
+                </StackPanel>
+            </ui:Card>
+
+            <!--  report  -->
+            <TextBlock Margin="0,18,0,8" Style="{StaticResource SectionTitle}" Text="Share a report" />
+            <ui:Card Padding="16,12">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource Subtle}" Text="One web page with these specs, drive health, temperatures, crashes and sleep problems, for a forum post or a repair shop. It is saved as a file; nothing is sent anywhere." TextTrimming="None" TextWrapping="Wrap" />
+                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                        <ui:Button Command="{Binding SaveReportCommand}" Content="Save report…" Icon="{ui:SymbolIcon DocumentSave24}" ToolTip="Save one web page with this PC's specs and health, for a forum post or a repair shop. Nothing is sent anywhere." />
+                        <CheckBox Margin="14,0,0,0" Content="Remove my user name, this PC's name and folder paths" IsChecked="{Binding RedactReport}" ToolTip="Replace your user name, the PC's name and folder paths in the report before you share it." />
+                    </StackPanel>
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

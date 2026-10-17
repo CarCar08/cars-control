@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(CarsTfm)</TargetFramework>
+    <RootNamespace>CarsControl.Contracts</RootNamespace>
+  </PropertyGroup>
+</Project>

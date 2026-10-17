@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- WinExe: no console window flashes up when it starts after the UAC prompt. -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>$(CarsTfm)</TargetFramework>
+    <AssemblyName>CarsControl.Helper</AssemblyName>
+    <RootNamespace>CarsControl.Helper</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyTitle>C.A.R.S. Control admin helper</AssemblyTitle>
+    <Description>C.A.R.S. Control admin helper</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CarsControl.Core\CarsControl.Core.csproj" />
+  </ItemGroup>
+</Project>

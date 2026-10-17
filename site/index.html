@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C.A.R.S. Control</title>
+<meta name="description" content="One Windows app to update, uninstall, clean up and keep an eye on everything on your PC. Free and open source.">
+<link rel="icon" href="images/icon.png">
+<style>
+  :root {
+    --bg: #f6f7f8; --surface: #ffffff; --text: #16181a; --muted: #5a6168; --line: #e1e4e8;
+    --accent: #12806f; --accent-text: #ffffff; --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141617; --surface: #1d2022; --text: #eceef0; --muted: #a3abb3; --line: #2c3033; --accent: #22b8a0; --accent-text: #08201c; --shadow: none; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  header.hero { padding: 64px 0 32px; text-align: center; }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin: 0 0 8px; letter-spacing: -0.02em; }
+  .hero .tag { font-size: 1.05rem; color: var(--muted); margin: 0 0 4px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .hero p.lead { font-size: 1.2rem; max-width: 680px; margin: 16px auto 28px; color: var(--muted); }
+  .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: 600; border: 1px solid var(--line); color: var(--text); background: var(--surface); }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+  .note { font-size: .9rem; color: var(--muted); margin-top: 14px; }
+  .shot { margin: 40px auto 8px; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); max-width: 960px; }
+  .shot img { display: block; width: 100%; height: auto; }
+  section { padding: 48px 0; }
+  h2 { font-size: 1.6rem; margin: 0 0 20px; letter-spacing: -0.01em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .gallery figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .gallery img { display: block; width: 100%; height: auto; }
+  .gallery figcaption { padding: 10px 14px; font-size: .9rem; color: var(--muted); }
+  ul.points { padding-left: 1.2em; margin: 0; }
+  ul.points li { margin: 6px 0; }
+  footer { border-top: 1px solid var(--line); padding: 28px 0 48px; color: var(--muted); font-size: .9rem; }
+  footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="tag">Cleanup · Apps · Refresh · Storage</p>
+    <h1>C.A.R.S. Control</h1>
+    <p class="lead">One Windows app to update, uninstall, clean up and keep an eye on everything on your PC, instead of a pile of separate tools. Free and open source.</p>
+    <div class="buttons">
+      <a class="btn primary" href="https://github.com/CarCar08/cars-control/releases/latest">Download for Windows</a>
+      <a class="btn" href="https://github.com/CarCar08/cars-control">Source code</a>
+      <a class="btn" href="https://github.com/CarCar08/cars-control/blob/main/docs/user-guide/README.md">User guide</a>
+    </div>
+    <p class="note">Windows 10 (2004+) and 11, 64-bit. The installer isn't code-signed yet, so Windows SmartScreen asks once:
+      <a href="https://github.com/CarCar08/cars-control/blob/main/docs/install.md#windows-protected-your-pc-smartscreen">why, and how to check the download</a>.</p>
+    <div class="shot"><img src="images/home.png" alt="The Home page: what needs attention, updates ready, space to clean, drives and recent activity" width="1320" height="860"></div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>What it does</h2>
+    <div class="grid">
+      <div class="card"><h3>Updates, all of them</h3><p>Apps from winget and the Microsoft Store, Windows Update, WSL, PowerShell modules, npm and pip, checked together and installed with one button.</p></div>
+      <div class="card"><h3>Uninstall properly</h3><p>Bulk uninstall with a review of the leftovers it finds; leftovers go to a quarantine you can restore from for 30 days.</p></div>
+      <div class="card"><h3>Find the space</h3><p>A treemap of each drive, big and old files, duplicates, junk, games you don't play, moving games and folders to another drive.</p></div>
+      <div class="card"><h3>Health that explains itself</h3><p>Drive wear and errors read from the drives themselves, temperatures, blue-screen analysis in plain words, freezes, sleep and boot times, drivers.</p></div>
+      <div class="card"><h3>Privacy switches with undo</h3><p>Telemetry, ads and AI extras, each showing what's set right now, why you might change it, and exactly how to switch it back.</p></div>
+      <div class="card"><h3>Backups and your setup</h3><p>Versioned backups to a cloud folder, a USB drive or another disk, and your preferences kept in step across PCs.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>A closer look</h2>
+    <div class="gallery">
+      <figure><img src="images/refresh-updates.png" alt="Refresh: every update in one list" loading="lazy"><figcaption>Refresh: every update in one list, with what's new.</figcaption></figure>
+      <figure><img src="images/health-drives.png" alt="Health: drive wear, hours and errors" loading="lazy"><figcaption>Health: what each drive reports about itself.</figcaption></figure>
+      <figure><img src="images/privacy.png" alt="Privacy switches" loading="lazy"><figcaption>Privacy: each switch explained, with exact undo.</figcaption></figure>
+      <figure><img src="images/cleanup.png" alt="Cleanup categories" loading="lazy"><figcaption>Cleanup: measured first, safe ones ticked.</figcaption></figure>
+      <figure><img src="images/storage-games.png" alt="Games by size and last played" loading="lazy"><figcaption>Storage: games by size, and moving them.</figcaption></figure>
+      <figure><img src="images/palette.png" alt="Command palette" loading="lazy"><figcaption>Ctrl+K finds any page, setting or explainer.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Careful by design</h2>
+    <ul class="points">
+      <li><strong>Nothing happens until you say so.</strong> Every page measures first and shows you the list; risky items start unticked, and most have a dry run.</li>
+      <li><strong>Runs as you.</strong> Only a small helper gets administrator rights, once per session, and it accepts a fixed list of checked operations, never commands or paths.</li>
+      <li><strong>Unattended work never pops up a prompt.</strong> Scheduled jobs that need admin wait for your approval.</li>
+      <li><strong>No telemetry.</strong> Bug reports are something you send yourself, after reading them. <a href="https://github.com/CarCar08/cars-control/blob/main/docs/security.md">Everything it connects to</a>.</li>
+      <li><strong>Explanations everywhere.</strong> Tooltips, (?) explainers and Recommended choices for your kind of PC.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>C.A.R.S. Control is open source under the MIT licence.</span>
+    <span><a href="https://github.com/CarCar08/cars-control/blob/main/docs/install.md">Install guide</a> ·
+      <a href="https://github.com/CarCar08/cars-control/blob/main/docs/install.md#11-faq">FAQ</a> ·
+      <a href="https://github.com/CarCar08/cars-control/blob/main/SECURITY.md">Security</a> ·
+      <a href="https://github.com/CarCar08/cars-control/issues/new/choose">Report a problem</a></span>
+  </div>
+</footer>
+</body>
+</html>

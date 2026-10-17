@@ -1,0 +1,40 @@
+name: Website
+
+# Publishes site/ (with the documentation screenshots) to GitHub Pages. Runs only on a public repository: Pages on a private
+# one needs a paid plan. One-time setup by the owner: Settings > Pages > Source: GitHub Actions.
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'docs/images/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the site
+        run: |
+          mkdir -p public/images
+          cp site/index.html public/
+          cp docs/images/*.png public/images/
+          cp src/CarsControl.App/Assets/cars.png public/images/icon.png
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4

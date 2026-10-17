@@ -1,0 +1,59 @@
+name: Bug report
+description: Something doesn't work, or works wrongly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting it. Please look through anything you paste for private details (your Windows user name in a path, app or file names you'd rather not share).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what you got. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: "In the app: Settings > About & updates > Copy diagnostics, then paste it here. (It has the version, Windows build and .NET version; no names or paths.)"
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where?
+      options:
+        - Installing / updating C.A.R.S. itself (Setup)
+        - Home
+        - Apps
+        - Refresh (updates)
+        - Storage
+        - Cleanup
+        - Health
+        - Privacy
+        - Backup & sync
+        - History
+        - Settings
+        - Command palette
+        - Gaming mode
+        - Scheduled maintenance
+        - Phone alerts
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (if there are any)
+      description: "The last lines of %LOCALAPPDATA%\\CarsControl\\logs\\errors.log, or for install problems %TEMP%\\CarsControl-Setup.log."
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before sending
+      options:
+        - label: I'm on the latest release (or I say which version above).
+        - label: I removed anything private from what I pasted.

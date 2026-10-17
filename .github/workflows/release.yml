@@ -1,0 +1,68 @@
+name: Release
+
+# Push a tag like v0.8.0 (or v0.9.0-rc.1 for a pre-release) and this builds, tests and publishes the installer
+# as a GitHub Release: CarsControl-Setup-<version>.exe, SHA256SUMS.txt and the CHANGELOG section as notes.
+#
+#   git tag v0.8.0 && git push origin v0.8.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Work out the version from the tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.\-]+)?$') { throw "The tag '$tag' isn't a version like v1.2.3 or v1.2.3-rc.1" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "prerelease=$($version.Contains('-').ToString().ToLower())" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/CarsControl.Tests/CarsControl.Tests.csproj -c Release --nologo
+
+      - name: Build the installer
+        shell: pwsh
+        run: scripts/build-release.ps1 -Version ${{ steps.version.outputs.version }} -Output artifacts
+
+      - name: Update test (previous release -> this one, in a sandbox)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $previous = gh release list --repo '${{ github.repository }}' --limit 30 --json tagName --jq '.[].tagName' | Where-Object { $_ -ne $tag } | Select-Object -First 1
+          if (-not $previous) { Write-Host 'No earlier release to update from; skipping.'; exit 0 }
+          New-Item -ItemType Directory -Force previous | Out-Null
+          gh release download $previous --repo '${{ github.repository }}' --pattern 'CarsControl-Setup-*.exe' --dir previous
+          $old = Get-ChildItem previous -Filter 'CarsControl-Setup-*.exe' | Select-Object -First 1
+          scripts/Test-Update.ps1 -OldSetup $old.FullName -NewSetup "artifacts/CarsControl-Setup-${{ steps.version.outputs.version }}.exe"
+      # Signing goes here once there is a certificate (see docs/building.md, "Signing").
+
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $args = @('release', 'create', '${{ github.ref_name }}',
+            "artifacts/CarsControl-Setup-$version.exe", 'artifacts/SHA256SUMS.txt',
+            '--title', "C.A.R.S. Control $version", '--notes-file', 'artifacts/release-notes.md', '--verify-tag')
+          if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $args += '--prerelease' }
+          gh @args

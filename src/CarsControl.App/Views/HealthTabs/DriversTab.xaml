@@ -1,0 +1,96 @@
+<UserControl
+    x:Class="CarsControl.App.Views.HealthTabs.DriversTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctl="clr-namespace:CarsControl.App.Controls"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,12,12,24">
+            <TextBlock Margin="0,0,0,12" Text="The drivers that make your hardware work, the graphics driver versions you've had (handy next to crash dates), and old copies Windows keeps that you can remove." TextWrapping="Wrap" />
+            <!--  old copies  -->
+            <StackPanel Orientation="Horizontal"><TextBlock VerticalAlignment="Center" Style="{StaticResource SectionTitle}" Text="Old driver copies Windows is keeping" /><ctl:HelpButton Topic="health-drivers" /></StackPanel>
+            <TextBlock Margin="0,0,0,8" Style="{StaticResource Subtle}" Text="{Binding StoreSummary}" TextTrimming="None" TextWrapping="Wrap" />
+            <ui:Card Margin="0,0,0,8" Padding="16,8" Visibility="{Binding OldPackages.Count, Converter={StaticResource ZeroToCollapsed}}">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding OldPackages}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="36" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="90" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox MinWidth="0" AutomationProperties.Name="{Binding Name}" IsChecked="{Binding IsSelected}" ToolTip="Tick to remove this old copy (never the newest, never one in use)." />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Version}" />
+                                    <TextBlock Grid.Column="3" Style="{StaticResource Subtle}" Text="{Binding Date}" />
+                                    <TextBlock Grid.Column="4" Style="{StaticResource Subtle}" Text="{Binding Published}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <StackPanel Margin="0,10,0,2" Orientation="Horizontal">
+                        <ui:Button Command="{Binding SelectAllOldPackagesCommand}" Content="Tick all" ToolTip="Tick every old driver copy." />
+                        <ui:Button Margin="8,0,0,0" Appearance="Danger" Command="{Binding DeleteOldPackagesCommand}" Content="Remove ticked" Icon="{ui:SymbolIcon Delete24}" IsEnabled="{Binding DriversBusy, Converter={StaticResource InverseBool}}" ToolTip="The newest copy and any a device uses are always kept; Windows refuses to remove those" />
+                        <ui:ProgressRing Width="16" Height="16" Margin="12,0,0,0" IsIndeterminate="True" Visibility="{Binding DriversBusy, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <!--  graphics driver versions  -->
+            <TextBlock Margin="0,14,0,6" Style="{StaticResource SectionTitle}" Text="NVIDIA graphics driver versions on this PC" />
+            <ItemsControl ItemsSource="{Binding GpuPackages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock FontWeight="SemiBold" Text="{Binding Version}" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource Subtle}" Text="{Binding Date}" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource Subtle}" Text="{Binding Published}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Margin="0,4,0,0" FontSize="12" Style="{StaticResource Subtle}" Text="Compare these dates with the blue screens on the Crashes tab. The dates are when each driver was built." TextTrimming="None" TextWrapping="Wrap" />
+
+            <!--  every driver  -->
+            <Grid Margin="0,18,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="260" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource SectionTitle}" Text="Every driver" />
+                <ui:TextBox Grid.Column="1" AutomationProperties.Name="Filter drivers" ClearButtonEnabled="True" PlaceholderText="Filter by device, maker or version" Text="{Binding DriverFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="Type part of a device, maker or version." />
+            </Grid>
+            <TextBlock Margin="0,0,0,6" Style="{StaticResource Subtle}" Text="{Binding DriverSummary}" />
+            <DataGrid
+                Height="380"
+                AutoGenerateColumns="False"
+                AutomationProperties.Name="Drivers"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False"
+                EnableRowVirtualization="True"
+                GridLinesVisibility="None"
+                HeadersVisibility="Column"
+                IsReadOnly="True"
+                ItemsSource="{Binding DriverRows}"
+                SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Width="2*" Binding="{Binding Device}" Header="Device" />
+                    <DataGridTextColumn Width="*" Binding="{Binding Maker}" Header="Maker" />
+                    <DataGridTextColumn Width="150" Binding="{Binding Version}" Header="Version" />
+                    <DataGridTextColumn Width="110" Binding="{Binding Date}" Header="Date" />
+                    <DataGridTextColumn Width="90" Binding="{Binding Class}" Header="Type" />
+                    <DataGridTextColumn Width="80" Binding="{Binding SignedText}" Header="Signed" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
