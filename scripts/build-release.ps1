@@ -1,4 +1,4 @@
-<#
+﻿<#
   Builds a release: the app, the admin helper, and the single-file installer that carries them.
 
     powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1 [-Version 0.8.0] [-Output artifacts]
@@ -15,7 +15,8 @@ param(
     [string]$Version,
     [string]$Output = 'artifacts',
     [string]$Configuration = 'Release',
-    [switch]$ReadyToRun
+    # ReadyToRun (precompiled code) is the default since 1.1: the first start after boot is ~230 ms faster for ~8 MB more download.
+    [switch]$NoReadyToRun
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -47,7 +48,7 @@ Step "Building C.A.R.S. Control $Version (app + admin helper)"
 $app = Join-Path $work 'app'
 $publishArgs = @('publish', 'src\CarsControl.App\CarsControl.App.csproj', '-c', $Configuration, '-o', $app, '--nologo', '-v', 'q',
     "-p:Version=$numeric", "-p:InformationalVersion=$Version")
-if ($ReadyToRun) { $publishArgs += '-p:PublishReadyToRun=true' }
+if (-not $NoReadyToRun) { $publishArgs += '-p:PublishReadyToRun=true' }
 Run 'dotnet' $publishArgs
 foreach ($f in 'CarsControl.exe', 'CarsControl.Helper.exe', 'Microsoft.Management.Deployment.winmd') {
     if (-not (Test-Path (Join-Path $app $f))) { throw "Missing $f in the publish output" }

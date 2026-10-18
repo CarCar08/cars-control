@@ -37,6 +37,35 @@
             Background="Transparent"
             BorderThickness="0"
             SelectionChanged="OnSectionChanged">
+                <!--  Selected like the sidebar (subtle fill and a short accent bar), not a solid accent block.  -->
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <Setter Property="Padding" Value="12,9" />
+                        <Setter Property="Margin" Value="0,1" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Grid>
+                                        <Border x:Name="Fill" Background="Transparent" CornerRadius="4" />
+                                        <Border x:Name="Bar" Width="3" Height="16" HorizontalAlignment="Left" Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="2" Visibility="Collapsed" />
+                                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                            <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBoxItem AutomationProperties.Name="Appearance" Tag="Appearance">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Margin="0,0,10,0" FontSize="16" Symbol="DarkTheme24" />

@@ -43,7 +43,10 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        PerfLog.Mark("OnStartup (App resources loaded)");
         DevFocusGuard.Install(); // test copies only: never keep the foreground
+        // Test copies only, for memory measurements: CARS_DEV_SOFTWARE_RENDER=1 draws without the GPU.
+        if (IsDevInstance && Environment.GetEnvironmentVariable("CARS_DEV_SOFTWARE_RENDER") == "1") System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         ErrorReporter.Install(this);
         ColumnHelp.Install();
 
@@ -101,6 +104,7 @@ public partial class App : Application
 
         Services = ConfigureServices();
         Notifier.Initialize();
+        PerfLog.Mark("services and notifications ready");
         Notifier.Activated += page => ShowMain(page);
         Notifier.ActionInvoked += action =>
         {
@@ -117,6 +121,7 @@ public partial class App : Application
 
         var settings = Services.GetRequiredService<AppSettings>();
         AppearanceService.Apply(settings.Appearance); // before the first window exists (see AppearanceService)
+        PerfLog.Mark("settings read, theme applied");
         RecommendationContext.Set(settings.Profile.PcType);
         BackgroundTasks.Run(Task.Run(() => RecommendationContext.HasBattery), "battery detection");
         var store = Services.GetRequiredService<InventoryStore>();
@@ -124,10 +129,13 @@ public partial class App : Application
         store.LoadCache(); // instant first paint from the last scan
         Core.Storage.CloudSync.HiddenForScreenshots = IsDemo;
         Extras.Init(store.Current?.Apps.Select(a => a.Name) ?? []);
+        // Installed or removed while C.A.R.S. runs (it can stay in the tray for days): re-read after every inventory scan.
+        store.Updated += () => Extras.Init(store.Current?.Apps.Select(a => a.Name) ?? []);
         PerfLog.Mark("inventory cache loaded");
 
         var background = e.Args.Contains("--background");
         var window = Services.GetRequiredService<MainWindow>();
+        PerfLog.Mark("main window created");
         window.StartHidden = background;
         window.Show();
         PerfLog.Mark("window shown");
@@ -186,7 +194,8 @@ public partial class App : Application
             return;
         }
         if (page == "tray" && IsDevInstance) { w.Hide(); PerfLog.Memory("tray"); PerfLog.Mark("activation handled: tray"); return; }
-        if (page == "perf" && IsDevInstance) { PerfLog.Memory("snapshot"); PerfLog.Mark("activation handled: perf"); return; }
+        if (page == "perf" && IsDevInstance) { PerfLog.Memory("snapshot"); PerfLog.Mark($"visuals in window: {CountVisuals(w)}"); PerfLog.Mark("activation handled: perf"); return; }
+        if (page == "trim" && IsDevInstance) { w.TrimPages(); PerfLog.Mark("activation handled: trim"); return; }
         if (page == "release" && IsDevInstance) { w.ReleaseHiddenPages(); PerfLog.Memory("after release"); PerfLog.Mark("activation handled: release"); return; }
         // Test copies: `--page tabaudit` walks the keyboard focus order of every page (see DevTabAudit).
         if (page == "tabaudit" && DevTabAudit.Enabled)
@@ -203,6 +212,13 @@ public partial class App : Application
         w.ShowFromTray();
         if (global::CarsControl.App.MainWindow.PageFromName(page) is { } p) w.NavigateTo(p);
         if (IsDevInstance) w.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, () => PerfLog.Mark($"activation handled: {page}"));
+    }
+
+    private static int CountVisuals(System.Windows.DependencyObject root)
+    {
+        var n = 1;
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++) n += CountVisuals(System.Windows.Media.VisualTreeHelper.GetChild(root, i));
+        return n;
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -265,7 +281,9 @@ public partial class App : Application
         sc.AddSingleton<HistoryViewModel>();
         sc.AddSingleton<StorageViewModel>();
         sc.AddSingleton<CleanupViewModel>();
+        sc.AddSingleton<TweakSwitcher>();
         sc.AddSingleton<PrivacyViewModel>();
+        sc.AddSingleton<OptimizeViewModel>();
         sc.AddSingleton<HealthViewModel>();
         sc.AddSingleton<WindowsUpdateViewModel>();
         sc.AddSingleton<StartupViewModel>();
@@ -286,6 +304,7 @@ public partial class App : Application
         sc.AddTransient<StoragePage>();
         sc.AddTransient<CleanupPage>();
         sc.AddTransient<PrivacyPage>();
+        sc.AddTransient<OptimizePage>();
         sc.AddTransient<HealthPage>();
         sc.AddTransient<BackupPage>();
         sc.AddTransient<HistoryPage>();

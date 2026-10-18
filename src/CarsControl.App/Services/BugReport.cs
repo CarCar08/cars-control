@@ -38,6 +38,6 @@ public static class BugReport
         var what = error is null
             ? "What I did:\n\nWhat I expected:\n\nWhat happened instead:\n"
             : "What I was doing when it happened:\n\n\nThe error C.A.R.S. showed (names and paths removed):\n" + Clean(IssueReport.ErrorSummary(error));
-        Platform.OpenUri(IssueReport.Url(ProjectUrl, title.Length > 120 ? title[..120] : title, what, Clean(Diagnostics(helperConnected))));
+        Platform.OpenUri(IssueReport.Url(ProjectUrl, IssueReport.Cut(title, 120), what, Clean(Diagnostics(helperConnected))));
     }
 }

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using CarsControl.App.Converters;
@@ -157,10 +157,10 @@ public sealed partial class HomeViewModel : ObservableObject
     private System.Windows.Threading.DispatcherTimer? _vpnTimer;
 
     /// <summary>The VPN chip: only when Proton VPN is on this PC, since "your traffic isn't going through it" matters there.</summary>
-    public void RefreshVpn()
+    public async Task RefreshVpnAsync()
     {
-        var adapters = Core.Health.NetworkStatus.Adapters();
-        var installed = Extras.ProtonVpn(adapters) || (_store.Current?.Apps.Any(a => a.Name.Contains("Proton VPN", StringComparison.OrdinalIgnoreCase) || a.Name.Equals("ProtonVPN", StringComparison.OrdinalIgnoreCase)) ?? false);
+        var adapters = await Task.Run(Core.Health.NetworkStatus.Adapters); // off the UI thread: enumerating adapters takes a moment
+        var installed = Extras.ProtonVpn(adapters);
         ShowVpn = installed;
         if (!installed) return;
         var status = Core.Health.NetworkStatus.Vpn(adapters);
@@ -168,7 +168,7 @@ public sealed partial class HomeViewModel : ObservableObject
         VpnText = status.Level switch { Core.Health.VpnLevel.Carrying => "VPN on", Core.Health.VpnLevel.ConnectedNotCarrying => "VPN: not carrying traffic", _ => "VPN off" };
     }
 
-    private void OnVpnTick(object? sender, EventArgs e) => RefreshVpn();
+    private void OnVpnTick(object? sender, EventArgs e) => BackgroundTasks.Run(RefreshVpnAsync(), "VPN chip");
 
     /// <summary>Home is no longer on screen: stop the once-a-minute look at the network.</summary>
     public void OnHidden() => _vpnTimer?.Stop();
@@ -179,24 +179,28 @@ public sealed partial class HomeViewModel : ObservableObject
     /// <summary>Called when Home is shown: refresh cheap things, and start the slower reads once.</summary>
     public async Task OnShownAsync()
     {
-        RefreshVpn();
+        var vpn = RefreshVpnAsync();
         _vpnTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
         _vpnTimer.Tick -= OnVpnTick;
         _vpnTimer.Tick += OnVpnTick;
         _vpnTimer.Start();
         RecalculateMaintenance(); // "next" and "last" are relative to now
-        RefreshDrives();
+        var drives = RefreshDrivesAsync();
         LoadActivity();
         if (!_storage.ReportsLoaded) await _storage.LoadReportsAsync();
         RecalculateGames();
-        RefreshDrives();
+        await drives;
+        await RefreshDrivesAsync(); // again with the largest folders from the storage reports
+        await vpn;
         await _cleanup.EnsureEstimatesAsync();
     }
 
     [RelayCommand]
-    private void RefreshDrives()
+    private async Task RefreshDrivesAsync()
     {
-        var cards = DriveCard.ReadAll(letter => (false, _storage.LargestFolder(letter))).ToList();
+        // Reading a drive that has spun down (a backup hard disk) can block for seconds: never on the UI thread.
+        var read = await DriveSnapshot.ReadAsync();
+        var cards = read.Select(c => c with { Note = _storage.LargestFolder(c.Letter) }).ToList();
         DriveCard.Sync(Drives, cards);
         UpdateDriveAttention(cards);
     }

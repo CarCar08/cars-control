@@ -1,4 +1,4 @@
-namespace CarsControl.Core.Help;
+﻿namespace CarsControl.Core.Help;
 
 /// <summary>What kind of PC this is. Auto = Laptop when there's a battery, otherwise Desktop.</summary>
 public enum PcType { Auto, Desktop, Laptop, GamingFirst }
@@ -8,8 +8,8 @@ public sealed record Recommendation(string Id, string Title, bool On, string Why
 
 /// <summary>
 /// The recommended setting for each switch, per kind of PC. Ids are the setting's name (for Settings switches, the view
-/// model property it binds to), "privacy:{tweak id}" and "cleanup:{rule id}". A switch without an entry has no
-/// recommendation: it's a matter of taste. The 1.1 Optimization page adds its tweaks here too.
+/// model property it binds to), "privacy:{tweak id}", "cleanup:{rule id}" and "optimize:{id}" (Optimization page). A switch
+/// without an entry has no recommendation: it's a matter of taste or, for "Test it" optimizations, it depends on the PC.
 /// </summary>
 public static class Recommendations
 {
@@ -52,6 +52,20 @@ public static class Recommendations
         ["AlertDriveHealth"] = new("Alert on drive health problems", true, true, true, "A failing drive gives only a little warning; this is the one alert worth having even at night."),
         ["AlertCrashes"] = new("Alert on blue screens", true, true, true, "Crashes while you're away are otherwise easy to miss."),
         ["AlertFailures"] = new("Alert on failures", true, true, true, "So a failed update or cleanup doesn't go unnoticed."),
+
+        // ---------- Optimization page (1.1). "Test it" switches never get one: whether they help depends on the PC. ----------
+        ["optimize:game-mode"] = new("Game Mode", true, true, true, "Windows' default: it keeps driver installs and restart prompts out of your games."),
+        ["optimize:background-recording-off"] = new("No background game recording", null, true, true,
+            "Recording every game all the time is wasted work if you don't save clips; Win+Alt+R still records on demand.",
+            "Constant recording costs battery for clips you may never save."),
+        ["optimize:mouse-acceleration-off"] = new("No mouse acceleration", null, null, true, "The same hand movement always moves the same distance, which makes aiming consistent."),
+        ["optimize:fast-startup-off"] = new("Full shutdown", true, null, true,
+            "Updates and drivers start from a clean state after every shutdown; on an SSD a full start takes only a few seconds longer."),
+        ["optimize:delivery-optimization-local"] = new("Share updates only on my network", true, true, true,
+            "Your upload bandwidth isn't used to send updates to strangers; downloads are as fast as before."),
+        ["optimize:hibernation-off"] = new("Turn off hibernation", true, false, true,
+            "Desktops rarely hibernate; turning it off frees the hibernation file (about 40% of your RAM) on the system drive.",
+            "Laptops hibernate to save your work when the battery runs low; keep it."),
     };
 
     /// <summary>The recommendation for one switch on this kind of PC, or null when there isn't one.</summary>
@@ -75,5 +89,9 @@ public static class Recommendations
 
     /// <summary>Every switch with a recommendation for this kind of PC (for "Apply recommended").</summary>
     public static IReadOnlyList<Recommendation> AllFor(PcType type) =>
-        Rules.Keys.Select(k => For(k, type)).OfType<Recommendation>().ToList();
+        Rules.Keys.Where(k => !k.StartsWith("optimize:", StringComparison.OrdinalIgnoreCase)).Select(k => For(k, type)).OfType<Recommendation>().ToList();
+
+    /// <summary>The Optimization page's recommendations for this kind of PC ("optimize:{id}").</summary>
+    public static IReadOnlyList<Recommendation> OptimizationsFor(PcType type) =>
+        Rules.Keys.Where(k => k.StartsWith("optimize:", StringComparison.OrdinalIgnoreCase)).Select(k => For(k, type)).OfType<Recommendation>().ToList();
 }

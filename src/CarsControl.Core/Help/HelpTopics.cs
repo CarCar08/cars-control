@@ -1,4 +1,4 @@
-namespace CarsControl.Core.Help;
+﻿namespace CarsControl.Core.Help;
 
 /// <summary>
 /// One explainer behind a (?) button: what the thing is, what C.A.R.S. does with it, what you should do, and whether it's
@@ -276,6 +276,16 @@ public static class HelpTopics
             "Removes one for your account only. Each can be reinstalled from the Microsoft Store with one click.",
             "Remove the ones you never open.",
             "Nothing changes for other accounts; Office and classic Outlook aren't affected."),
+        new("optimize-evidence", "How sure are these optimizations?",
+            "Every switch on this page says how sure we are it does something. Documented: Microsoft describes the effect. Measured: independent tests show a consistent effect. Depends on your PC: tests disagree, it helps some PCs and slows others. Your preference: no speed difference worth measuring, it's about how Windows feels.",
+            "Applies only the switches you choose, remembering what was there before. Popular \"tweaks\" that measurements show do nothing or carry risk aren't offered at all: network optimizers, RAM cleaners, disabling services wholesale, and anything that weakens security.",
+            "Start with Apply recommended for your kind of PC (Settings › This PC). Leave \"Depends on your PC\" switches alone unless you can measure the difference.",
+            "Every switch can be switched back, to exactly what was there before. A restore point is made before admin changes when System Protection is on."),
+        new("optimize-power-mode", "Power mode",
+            "Windows' own power setting (Settings › System › Power): Best power efficiency, Balanced or Best performance. It decides how quickly the processor speeds up and how far.",
+            "Sets the same setting Windows does. It only exists on Windows' Balanced plan; PCs set to High performance or a maker's own plan don't have it.",
+            "Gaming PC: Best performance. Laptop: Balanced. Desktop: either; Best performance mainly costs a little more power and heat.",
+            "Changes nothing permanent; switch it back any time."),
     ];
 
     private static readonly Dictionary<string, HelpTopic> ById = All.ToDictionary(t => t.Id, StringComparer.OrdinalIgnoreCase);

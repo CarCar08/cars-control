@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="CarsControl.App.Views.AppsPage"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -187,6 +187,7 @@
 
             <!--  Details panel  -->
             <ui:Card
+                x:Name="DetailsCard"
                 Grid.Column="1"
                 Width="340"
                 Margin="12,0,0,0"

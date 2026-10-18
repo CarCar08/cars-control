@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
 namespace CarsControl.Core.Util;
@@ -11,6 +11,7 @@ public static partial class Tools
     public static string Wsl => Path.Combine(System32, "wsl.exe");
     public static string MsiExec => Path.Combine(System32, "msiexec.exe");
     public static string Cmd => Path.Combine(System32, "cmd.exe");
+    public static string PowerCfg => Path.Combine(System32, "powercfg.exe");
 
     public static string OfficeC2RClient =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFiles), @"microsoft shared\ClickToRun\OfficeC2RClient.exe");

@@ -18,6 +18,8 @@ public static partial class IssueReport
         if (string.IsNullOrEmpty(text)) return text;
         var result = text;
         if (profilePath.Length > 3) result = Regex.Replace(result, Regex.Escape(profilePath.TrimEnd('\\')), @"C:\Users\<you>", RegexOptions.IgnoreCase);
+        // Any other account's profile folder (the admin account's, in the helper's paths) is somebody's name too.
+        result = OtherProfile().Replace(result, @"$1\<another account>");
         result = Email().Replace(result, "<e-mail>");
         if (userName.Length > 1) result = Regex.Replace(result, @"(?<![\w])" + Regex.Escape(userName) + @"(?![\w])", "<you>", RegexOptions.IgnoreCase);
         if (machineName.Length > 1) result = Regex.Replace(result, @"(?<![\w])" + Regex.Escape(machineName) + @"(?![\w])", "<this PC>", RegexOptions.IgnoreCase);
@@ -49,11 +51,30 @@ public static partial class IssueReport
         while (url.Length > MaxUrlLength && keep > 200)
         {
             keep = keep * 3 / 4;
-            url = Build(what[..keep] + "\n…(shortened)", diagnostics);
+            url = Build(Cut(what, keep) + "\n…(shortened)", diagnostics);
+        }
+        // Still too long (a huge title or diagnostics): shorten those too rather than open a link GitHub refuses.
+        var d = diagnostics.Length;
+        while (url.Length > MaxUrlLength && d > 200)
+        {
+            d = d * 3 / 4;
+            url = Build(Cut(what, Math.Min(keep, 200)), Cut(diagnostics, d) + "\n…(shortened)");
         }
         return url;
     }
 
     [GeneratedRegex(@"[\w.+-]+@[\w-]+\.[\w.-]+")]
     private static partial Regex Email();
+
+    [GeneratedRegex(@"(\b[A-Za-z]:\\Users)\\(?!<you>|<another account>|Public\\|Default\\)[^\\/:*?""<>|\r\n]+", RegexOptions.IgnoreCase)]
+    private static partial Regex OtherProfile();
+
+    /// <summary>The first <paramref name="max"/> characters, never splitting a surrogate pair (half an emoji makes the link invalid).</summary>
+    public static string Cut(string text, int max)
+    {
+        if (text.Length <= max) return text;
+        var n = Math.Max(0, max);
+        if (n > 0 && char.IsHighSurrogate(text[n - 1])) n--;
+        return text[..n];
+    }
 }

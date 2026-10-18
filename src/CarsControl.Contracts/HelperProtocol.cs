@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace CarsControl.Contracts;
@@ -44,6 +44,8 @@ namespace CarsControl.Contracts;
 [JsonDerivedType(typeof(InstallPawnIoOp), "pawnio-install")]
 [JsonDerivedType(typeof(CopyCrashDumpOp), "crashdump-copy")]
 [JsonDerivedType(typeof(RemoveMovedGameOp), "moved-game-remove")]
+[JsonDerivedType(typeof(HibernationOp), "hibernation")]
+[JsonDerivedType(typeof(FrameCaptureOp), "frame-capture")]
 public abstract record HelperOp;
 
 /// <summary>Privacy: applies, undoes or resets one switch from the helper's own catalog, by id.
@@ -151,6 +153,14 @@ public sealed record HideUpdateOp(string UpdateId, bool Hide) : HelperOp;
 
 /// <summary>Turns System Protection (restore points) on for C: only.</summary>
 public sealed record EnableSystemRestoreOp : HelperOp;
+
+/// <summary>Turns hibernation on or off (`powercfg /hibernate on|off`); off deletes the hibernation file and also turns off
+/// fast startup, which depends on it.</summary>
+public sealed record HibernationOp(bool On) : HelperOp;
+
+/// <summary>Records a game's frame times for "Test it on this PC" with Intel PresentMon (fetched on demand, hash-checked).
+/// Data: JSON FrameSummary (frame rate, 1% low, per-chunk values). Only the process id and 10–120 seconds are accepted.</summary>
+public sealed record FrameCaptureOp(int ProcessId, int Seconds) : HelperOp;
 
 /// <summary>Reads CPU, board, fan and other sensors with LibreHardwareMonitor and the PawnIO driver.
 /// Data: JSON sensor list. Fails with "pawnio-missing" in Data when the driver isn't installed.</summary>

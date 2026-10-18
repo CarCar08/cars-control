@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CarsControl.Core.Gaming;
 using CarsControl.Core.Storage;
 
@@ -16,6 +16,7 @@ public sealed class GameWatcher(GameMode mode, AppSettings settings, InventorySt
     private static readonly TimeSpan FolderRefresh = TimeSpan.FromMinutes(15);
 
     private readonly Dictionary<int, string?> _paths = new();
+    private readonly object _foldersGate = new(); // RefreshFolders runs on the watcher's thread and for the frame test's list
     private IReadOnlyList<GameFolder> _folders = [];
     private DateTime _foldersAt = DateTime.MinValue;
     private DateTime? _lastSeen;
@@ -79,8 +80,48 @@ public sealed class GameWatcher(GameMode mode, AppSettings settings, InventorySt
         }
     }
 
+    /// <summary>A program with a window, for the frame test's picker.</summary>
+    public sealed record RunningProgram(int ProcessId, string Name, string FileName, bool IsGame)
+    {
+        public override string ToString() => IsGame ? $"{Name} (game)" : $"{Name} ({FileName})";
+    }
+
+    /// <summary>Programs with a window on your desktop, detected games first. Used by Optimization's "Test it on this PC".</summary>
+    public IReadOnlyList<RunningProgram> RunningPrograms()
+    {
+        if (_folders.Count == 0 || DateTime.Now - _foldersAt > FolderRefresh) RefreshFolders();
+        var gaming = settings.Store.Current.Gaming;
+        var own = Environment.ProcessId;
+        var list = new List<RunningProgram>();
+        foreach (var p in Process.GetProcesses())
+        {
+            using (p)
+            {
+                try
+                {
+                    if (p.Id <= 4 || p.Id == own || p.SessionId == 0 || p.MainWindowHandle == IntPtr.Zero) continue;
+                    var path = GameDetector.ImagePath(p.Id);
+                    var file = path is null ? p.ProcessName + ".exe" : System.IO.Path.GetFileName(path);
+                    var game = path is null ? null : GameDetector.Match(path, _folders, gaming.ExtraGames, gaming.IgnoredPrograms);
+                    var title = string.IsNullOrWhiteSpace(p.MainWindowTitle) ? p.ProcessName : p.MainWindowTitle;
+                    list.Add(new RunningProgram(p.Id, game ?? title, file, game is not null));
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+                {
+                    // exited or not ours to look at
+                }
+            }
+        }
+        return list.OrderByDescending(r => r.IsGame).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
     /// <summary>Re-reads the game folders now (after a scan finds new games, or for tests).</summary>
     public void RefreshFolders()
+    {
+        lock (_foldersGate) RefreshFoldersLocked();
+    }
+
+    private void RefreshFoldersLocked()
     {
         try
         {

@@ -1,4 +1,4 @@
-# C.A.R.S. Control user guide
+﻿# C.A.R.S. Control user guide
 
 One page per area of the app, in the order of the sidebar. If you haven't installed it yet, start with the [install guide](../install.md).
 
@@ -11,9 +11,10 @@ One page per area of the app, in the order of the sidebar. If you haven't instal
 | [Cleanup](cleanup.md) | Ctrl+5 | Temp files, caches and other safe-to-clear leftovers. |
 | [Health](health.md) | Ctrl+6 | Specs, temperatures, drive health, blue screens, freezes, boot times, drivers, what's using the PC, network and VPN. |
 | [Privacy](privacy.md) | Ctrl+7 | 38 switches for telemetry, ads and AI extras, each with exact undo. |
-| [Backup & sync](backup.md) | Ctrl+8 | Backups to Proton Drive, a USB drive or another disk; your setup on every PC; your PCs' status. |
-| [History](history.md) | Ctrl+9 | Every operation with its full output; restore leftovers. |
-| [Settings](settings.md) | Ctrl+0 | Appearance, schedules, Gaming mode, phone alerts, this PC's holds and more. |
+| [Optimization](optimize.md) | Ctrl+8 | Power mode, hibernation, gaming features, visual effects and start-up, each labelled with how sure we are it helps, with exact undo. |
+| [Backup & sync](backup.md) | Ctrl+9 | Backups to Proton Drive, a USB drive or another disk; your setup on every PC; your PCs' status. |
+| [History](history.md) | Ctrl+0 | Every operation with its full output; restore leftovers. |
+| [Settings](settings.md) | Ctrl+, | Appearance, schedules, Gaming mode, phone alerts, this PC's holds and more. |
 | [Automation](automation.md) | | The things that happen by themselves: scheduled maintenance, the approval queue, Gaming mode, phone alerts, restart-when-away, the command palette. |
 
 ## Ideas that apply everywhere
@@ -53,7 +54,7 @@ Some things are deliberately hard to hurt by accident:
 ### Keyboard
 
 * **Ctrl+K** opens the command palette from inside the app; **Ctrl+Alt+Space** (changeable) opens it from any program. Type part of anything: an action, a page, an app, a game, a big file, a setting. **Enter** runs the top result; **→** shows more actions; what you use most moves up.
-* **Ctrl+1 … Ctrl+9, Ctrl+0** switch pages. **Tab** and **Shift+Tab** move through everything; every control has a name for screen readers.
+* **Ctrl+1 … Ctrl+9, Ctrl+0** switch pages (in sidebar order); **Ctrl+,** opens Settings. **Tab** and **Shift+Tab** move through everything; every control has a name for screen readers.
 * Storage › Explore: mouse side buttons or **Alt+←/→** for Back/Forward, **Backspace** or **Alt+↑** for the parent folder, **Enter** to open.
 
 ### The tray icon

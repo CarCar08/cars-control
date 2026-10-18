@@ -1,4 +1,4 @@
-# How C.A.R.S. Control keeps your PC safe
+﻿# How C.A.R.S. Control keeps your PC safe
 
 C.A.R.S. Control can update, uninstall, clean and (a little) configure Windows, so it matters *how* it gets the rights to do that. This page is the full account: the design, every operation the administrator helper accepts and what each one checks, everything the app connects to, and what it stores where. Report a problem with any of it through the private route in [SECURITY.md](../SECURITY.md).
 
@@ -22,7 +22,7 @@ C.A.R.S. Control can update, uninstall, clean and (a little) configure Windows, 
 
 * The app **always runs as you**, never as administrator. It refuses to start elevated.
 * Everything that needs administrator rights goes to one small program, **`CarsControl.Helper.exe`**, which Windows starts through the normal UAC prompt.
-* The helper does **not** run commands or touch arbitrary paths it is handed. It accepts a fixed list of **35 typed operations** that carry bounded identifiers (a winget id, a cleanup-rule id, a privacy-switch id, a Windows Update GUID, a drive letter, an Epic manifest id), validates each, and works out what to run by itself. Old-Windows removal is the narrowly checked folder exception described below.
+* The helper does **not** run commands or touch arbitrary paths it is handed. It accepts a fixed list of **37 typed operations** that carry bounded identifiers (a winget id, a cleanup-rule id, a privacy-switch id, a Windows Update GUID, a drive letter, an Epic manifest id), validates each, and works out what to run by itself. Old-Windows removal is the narrowly checked folder exception described below.
 * Nothing runs elevated in the background. No service, no scheduled task, no startup entry. **Unattended work never shows a UAC prompt**; if it needs admin and no session is open, it waits for you in the approval queue.
 * No telemetry. The only connections are listed in [section 7](#7-what-it-connects-to).
 * **Salad is permanently protected**, including when your configurable protection list is empty: app installation, updates, removal, startup and menu changes, folder moves and graceful-close requests refuse it. The helper independently rejects its package identifiers, startup names/commands, shortcut targets, task definitions and uninstall entries. Task commands are re-read before a real change; unreadable definitions are left unchanged. Earnings miners and WSL are also refused by the close-apps path.
@@ -92,6 +92,8 @@ The *wire name* is the `type` in the protocol. "Accepts" is what the helper chec
 | `pip-upgrade` | `python -m pip install --upgrade <package>` with the *machine-wide* Python. | Package name pattern (letters, digits, `.`, `_`, `-`; an optional scope is not accepted), max 120 characters; anything starting with `-` or `@` is refused, so no pip flag can ride along (`--index-url=…` is a built-in self-test). |
 | `restore-point` | Makes a System Restore point. | Description matches `^[A-Za-z0-9 .,:()_-]{1,64}$` and is passed in an environment variable. |
 | `restore-enable` | Turns System Protection on for **C: only**. | Takes nothing; a fixed script. |
+| `frame-capture` | Records a game's frame times for **Optimization › Test it on this PC**, with Intel PresentMon. | Takes only a **process id** (must be running, not PID 0–4, not a service) and **10–120 seconds**. PresentMon is **one pinned release (2.6.0)**: downloaded from its GitHub release on first use, accepted only at the expected size and **SHA-256**, re-checked before every run, kept where only admins can write. The recording stays inside the helper; only the summary (frame rates) goes back. |
+| `hibernation` | Turns hibernation on or off with `powercfg /hibernate on` or `off` (off deletes the hibernation file and also turns off fast startup). Optimization page. | Takes only on/off; a fixed command. |
 | `wu-pause` | Gaming mode: pauses Windows Update the way Settings does, with a 12-hour safety expiry; resume undoes only a pause C.A.R.S. made. | A boolean. A pause you set yourself is detected and left alone. |
 
 ### Cleanup, leftovers and storage
@@ -120,7 +122,7 @@ The *wire name* is the `type` in the protocol. "Accepts" is what the helper chec
 
 | Operation | What it does | Accepts / validates |
 |---|---|---|
-| `tweak` | Applies, undoes or resets one privacy switch that needs admin. | The id must be in the helper's own **catalog**, scope machine or user-policy (switches that only touch your own account are applied by the app, not here); action is `apply`, `undo` or `default`. Only that switch's own registry values are written. Your policy values go into **your own** registry hive (`HKEY_USERS\<your SID>`), and the helper refuses if it can't tell whose SID that is. The state before the first change is saved in `ProgramData\CarsControl\tweaks`, so Undo restores exactly that. The catalog never contains Defender, SmartScreen, the firewall, UAC, Windows Update or Windows Error Reporting. |
+| `tweak` | Applies, undoes or resets one privacy switch or Optimization-page switch that needs admin. | The id must be in the helper's own **catalog**, scope machine or user-policy (switches that only touch your own account are applied by the app, not here); action is `apply`, `undo` or `default`. Only that switch's own registry values are written. Your policy values go into **your own** registry hive (`HKEY_USERS\<your SID>`), and the helper refuses if it can't tell whose SID that is. The state before the first change is saved in `ProgramData\CarsControl\tweaks`, so Undo restores exactly that. The catalog never contains Defender, SmartScreen, the firewall, UAC, Windows Update or Windows Error Reporting. |
 
 ### Apps › Startup
 

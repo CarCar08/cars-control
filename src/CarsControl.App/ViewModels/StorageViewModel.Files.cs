@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -169,7 +169,7 @@ public sealed partial class StorageViewModel
         var previous = FileDriveChips.ToDictionary(c => c.Key, c => c.IsSelected, StringComparer.OrdinalIgnoreCase);
         foreach (var c in FileDriveChips) c.PropertyChanged -= OnFileDriveChipChanged;
         FileDriveChips.Clear();
-        foreach (var d in DriveCard.ReadAll())
+        foreach (var d in DriveSnapshot.Last) // filled off the UI thread; Changed rebuilds the chips
         {
             var scanned = _scans.TryGetValue(d.Letter, out var s);
             var chip = new FilterChip(d.Letter, d.Letter)

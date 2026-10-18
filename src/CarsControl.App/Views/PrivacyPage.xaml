@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="CarsControl.App.Views.PrivacyPage"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -15,6 +15,8 @@
             <Setter Property="Padding" Value="6,1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </Page.Resources>
     <ScrollViewer FocusVisualStyle="{x:Null}" PanningMode="VerticalOnly" VerticalScrollBarVisibility="Auto">

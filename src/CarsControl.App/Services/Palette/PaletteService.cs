@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using CarsControl.App.Converters;
 using CarsControl.App.ViewModels;
 using CarsControl.App.Views;
@@ -22,7 +22,11 @@ public sealed class PaletteService(IServiceProvider services, AppSettings settin
         [PaletteGroup.Games] = 5, [PaletteGroup.Files] = 5, [PaletteGroup.Settings] = 4,
     };
 
-    private T Get<T>() where T : notnull => services.GetRequiredService<T>();
+    /// <summary>A service, or the page on screen: pages come from PageCache (resolving one directly would build a second, hidden copy).</summary>
+    private T Get<T>() where T : notnull =>
+        typeof(System.Windows.Controls.Page).IsAssignableFrom(typeof(T))
+            ? (T)(object)services.GetRequiredService<PageCache>().Get(typeof(T))
+            : services.GetRequiredService<T>();
 
     /// <summary>The saved scans (games, big files) haven't loaded yet.</summary>
     public bool ScansPending => !Get<StorageViewModel>().ReportsLoaded;
@@ -236,13 +240,15 @@ public sealed class PaletteService(IServiceProvider services, AppSettings settin
                 return Task.CompletedTask;
             },
         };
-        foreach (var d in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady))
+        // Drives as last read off the UI thread (a spun-down disk would freeze the palette while you type).
+        if (DriveSnapshot.Last.Count == 0) BackgroundTasks.Run(DriveSnapshot.ReadAsync(), "palette drives");
+        foreach (var d in DriveSnapshot.Last)
         {
-            var letter = d.Name.TrimEnd('\\');
+            var letter = d.Letter;
             yield return new PaletteItem
             {
                 Id = $"action:scan:{letter}", Title = $"Scan drive {letter}", Group = PaletteGroup.Actions, Icon = SymbolRegular.Storage24,
-                Subtitle = $"{Format.Bytes(d.TotalFreeSpace)} free of {Format.Bytes(d.TotalSize)}", Keywords = "storage explore treemap size",
+                Subtitle = $"{d.FreeText} · {d.UsedText} used", Keywords = "storage explore treemap size",
                 Run = () =>
                 {
                     Show("storage");
@@ -309,6 +315,7 @@ public sealed class PaletteService(IServiceProvider services, AppSettings settin
             ("health", "Health", SymbolRegular.HeartPulse24, "temperature sensors drives crashes blue screen sleep boot drivers network vpn"),
             ("backup", "Backup & sync", SymbolRegular.CloudArrowUp24, "backup copy usb proton drive setup sync pcs fleet restore"),
             ("privacy", "Privacy", SymbolRegular.ShieldLock24, "telemetry ads copilot recall debloat tracking camera microphone"),
+            ("optimize", "Optimization", SymbolRegular.Gauge24, "performance speed power mode game mode gpu scheduling hags hibernation animations transparency mouse acceleration fast startup tweaks"),
             ("history", "History", SymbolRegular.History24, "log activity done"),
             ("settings", "Settings", SymbolRegular.Settings24, "options preferences"),
         ];

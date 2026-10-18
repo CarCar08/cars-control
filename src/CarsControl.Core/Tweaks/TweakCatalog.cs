@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 
 namespace CarsControl.Core.Tweaks;
 
@@ -16,7 +16,30 @@ public enum TweakScope
     Machine,
 }
 
-public enum TweakGroup { Telemetry, Ads, AI, Search, Edge, Office, Taskbar }
+public enum TweakGroup
+{
+    // Privacy page
+    Telemetry, Ads, AI, Search, Edge, Office, Taskbar,
+
+    // Optimization page (1.1)
+    Power, Gaming, Visuals, Background, Network,
+}
+
+/// <summary>How sure we are an optimization does what it says (the Optimization page shows it on every row).</summary>
+public enum Evidence
+{
+    /// <summary>Microsoft documents the effect.</summary>
+    Documented,
+
+    /// <summary>Independent measurements show a consistent effect.</summary>
+    Measured,
+
+    /// <summary>Helps on some PCs and hurts on others: measure it on yours (Test it on this PC).</summary>
+    TestIt,
+
+    /// <summary>A matter of taste: no speed difference worth measuring.</summary>
+    Preference,
+}
 
 /// <summary>One registry value a tweak sets. <see cref="Default"/> is what Windows has out of the box
 /// (null = the value doesn't exist).</summary>
@@ -47,7 +70,26 @@ public sealed class Tweak
     /// <summary>Left out of "Apply recommended" (e.g. it would break something on this PC).</summary>
     public Func<string?>? Caution { get; init; }
 
+    /// <summary>Optimization page: how sure we are, in one plain sentence why, and where that comes from.</summary>
+    public Evidence Evidence { get; init; } = Evidence.Documented;
+    public string? EvidenceNote { get; init; }
+    public string? SourceUrl { get; init; }
+
+    /// <summary>When the change takes effect, if not right away ("after a restart", "after signing out").</summary>
+    public string? TakesEffect { get; init; }
+
     public bool NeedsAdmin => Scope != TweakScope.User;
+
+    public bool IsOptimization => Group >= TweakGroup.Power;
+
+    /// <summary>
+    /// The switch puts back a Windows default that something (often a "debloat" script) turned off, like Game Mode: its value is
+    /// the default, and the row shows On whenever Windows behaves the default way.
+    /// </summary>
+    public bool RestoresWindowsDefault { get; init; }
+
+    /// <summary>Could plausibly change a game's frame rate, so the Optimization page offers "Test it on this PC" for it.</summary>
+    public bool FrameTestable { get; init; }
 
     public bool IsAvailable(int build) => build >= MinBuild && build < MaxBuild && (Applies?.Invoke() ?? true);
 }
@@ -75,10 +117,20 @@ public static class TweakCatalog
         TweakGroup.Search => "Widgets, news & web search",
         TweakGroup.Edge => "Microsoft Edge",
         TweakGroup.Office => "Microsoft Office",
-        _ => "Taskbar",
+        TweakGroup.Taskbar => "Taskbar",
+        TweakGroup.Power => "Power",
+        TweakGroup.Gaming => "Gaming",
+        TweakGroup.Visuals => "Visual effects",
+        TweakGroup.Background => "Background and start-up",
+        _ => "Network",
     };
 
-    public static IReadOnlyList<Tweak> All { get; } =
+    private static IReadOnlyList<Tweak>? _all;
+
+    /// <summary>Privacy switches and optimizations (the helper accepts only these ids).</summary>
+    public static IReadOnlyList<Tweak> All => _all ??= [.. Privacy, .. Optimizations.All];
+
+    private static IReadOnlyList<Tweak> Privacy { get; } =
     [
         // ---------- Telemetry & diagnostics ----------
         new()

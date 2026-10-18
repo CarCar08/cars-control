@@ -29,6 +29,29 @@ public static class CW {
   public struct RECT { public int L, T, R, B; }
 }
 "@
+# Window bounds in real screen pixels whatever this process's DPI awareness is (GetWindowRect is virtualized for a DPI-unaware
+# host, which cropped every screenshot on the 250% TV once). Its own class, so a reused PowerShell host never has to redefine one.
+if (-not ('CarsShotBounds' -as [type])) {
+  Add-Type @"
+using System; using System.Runtime.InteropServices;
+public static class CarsShotBounds {
+  [StructLayout(LayoutKind.Sequential)] public struct R { public int L, T, Rt, B; }
+  [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int a, out R r, int size);
+  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out R r);
+  [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr c);
+  /// Per-monitor DPI for this thread. The process-wide switch fails when the PowerShell host's manifest already set one, and
+  /// then window sizes are scaled: on the 250% TV a 960-wide window became 2400 and every size pass came out full-screen.
+  public static void PerMonitor() { SetThreadDpiAwarenessContext(new IntPtr(-4)); }
+  public static int[] Of(IntPtr h) {
+    R r;
+    if (DwmGetWindowAttribute(h, 9, out r, Marshal.SizeOf(typeof(R))) != 0) GetWindowRect(h, out r); // 9 = DWMWA_EXTENDED_FRAME_BOUNDS
+    return new[] { r.L, r.T, r.Rt, r.B };
+  }
+}
+"@
+}
+[CarsShotBounds]::PerMonitor()
+
 Add-Type -AssemblyName System.Windows.Forms
 [CW]::SetProcessDpiAwarenessContext([IntPtr](-4)) | Out-Null   # per-monitor v2: real pixel sizes on every monitor
 $AE = [System.Windows.Automation.AutomationElement]; $TS = [System.Windows.Automation.TreeScope]
@@ -156,7 +179,7 @@ function Save-Shot($bmp, $file, $hwnd) {
 }
 
 function Grab([IntPtr]$h, $file) {
-  $r = New-Object CW+RECT; [CW]::GetWindowRect($h, [ref]$r) | Out-Null
+  $b = [CarsShotBounds]::Of($h); $r = [pscustomobject]@{ L = $b[0]; T = $b[1]; R = $b[2]; B = $b[3] }
   $bmp = New-Object System.Drawing.Bitmap ([Math]::Max(1, $r.R - $r.L)), ([Math]::Max(1, $r.B - $r.T))
   $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc(); [CW]::PrintWindow($h, $hdc, 2) | Out-Null; $g.ReleaseHdc($hdc); $g.Dispose()
   Save-Shot $bmp $file $h; $bmp.Dispose()
@@ -220,6 +243,8 @@ function Tour([switch]$Full) {
   if ($Full) { ScrollPage 100; Shot '13-cleanup-bottom'; ScrollPage 0 }
   Go privacy; Shot '14a-privacy'
   ScrollPage 50; Shot '14b-privacy-middle'; ScrollPage 100; Shot '14c-privacy-bottom'; ScrollPage 0
+  Go optimize; Shot '14d-optimize'
+  ScrollPage 50; Shot '14e-optimize-middle'; ScrollPage 100; Shot '14f-optimize-bottom'; ScrollPage 0
   Go history;  Shot '14-history'
   if ($Full) { SelectFirstRow; Shot '15-history-selected' }
   Go settings; Select1 'Appearance'; Shot '16-settings'
@@ -315,7 +340,7 @@ if ($Docs) {
     '05-refresh' = 'refresh-updates'; '24-refresh-windowsupdate' = 'refresh-windowsupdate'
     '07-storage-explore' = 'storage-explore'; '25-storage-duplicates' = 'storage-duplicates'; '26-storage-junk' = 'storage-junk'
     '10-storage-games' = 'storage-games'; '27-storage-move' = 'storage-move'; '11-storage-oldwindows' = 'storage-oldwindows'
-    '12-cleanup' = 'cleanup'; '14a-privacy' = 'privacy'; '14-history' = 'history'
+    '12-cleanup' = 'cleanup'; '14a-privacy' = 'privacy'; '14d-optimize' = 'optimize'; '14e-optimize-middle' = 'optimize-gaming'; '14-history' = 'history'
     '28-health-overview' = 'health-overview'; '28-health-sensors' = 'health-sensors'; '28-health-drives' = 'health-drives'; '28-health-crashes' = 'health-crashes'
     '28-health-sleep' = 'health-sleep'; '28-health-drivers' = 'health-drivers'; '28-health-activity' = 'health-activity';
     '29-backup-backups' = 'backup-backups'; '29-backup-setup' = 'backup-setup'; '29-backup-pcs' = 'backup-pcs'

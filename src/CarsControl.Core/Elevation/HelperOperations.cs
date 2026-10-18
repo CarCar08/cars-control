@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using CarsControl.Contracts;
 using CarsControl.Core.Updates;
@@ -43,10 +43,11 @@ public sealed partial class HelperOperations(HelperLog log, string? parentProfil
             StorageScanOp s => await StorageOps.ScanAsync(s, dryRun, line, log, parentSid, ct),
             WindowsUpdatePauseOp or PurgeStandbyListOp or ServiceControlOp => GamingOps.Execute(op, dryRun, line, log),
             TweakOp t => TweakOps.Execute(t, dryRun, log, parentSid),
+            FrameCaptureOp f => await OptimizeOps.CaptureAsync(f, dryRun, line, log, ct),
             RemoveOldWindowsOp r => await OldWindowsOps.ExecuteAsync(r, dryRun, line, log, ct),
             RemoveMovedGameOp g => await GameMoveOps.RemoveOldAsync(g, dryRun, line, log, ct),
             StartupEntryOp or ServiceStartTypeOp or ScheduledTaskToggleOp => await StartupOps.ExecuteAsync(op, dryRun, line, log, ct),
-            DriveHealthOp or PowerRequestsOp or BootPerformanceOp or DriverDeleteOp or WindowsUpdatePolicyOp or HideUpdateOp or EnableSystemRestoreOp or SensorsReadOp or InstallPawnIoOp or CopyCrashDumpOp
+            DriveHealthOp or PowerRequestsOp or BootPerformanceOp or DriverDeleteOp or WindowsUpdatePolicyOp or HideUpdateOp or EnableSystemRestoreOp or HibernationOp or SensorsReadOp or InstallPawnIoOp or CopyCrashDumpOp
                 => await HealthOps.ExecuteAsync(op, dryRun, line, log, ct, parentSid),
             _ => OpResult.Reject($"Unknown operation {op.GetType().Name}"),
         };

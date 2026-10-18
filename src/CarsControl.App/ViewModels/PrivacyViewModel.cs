@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -16,7 +16,17 @@ using Microsoft.Win32;
 
 namespace CarsControl.App.ViewModels;
 
-public sealed partial class TweakRowViewModel(Tweak tweak, PrivacyViewModel owner) : ObservableObject
+/// <summary>The page a switch row belongs to (Privacy or Optimization): it applies the change.</summary>
+public interface ITweakRowOwner
+{
+    Task ChangeAsync(TweakRowViewModel row, bool on);
+    Task ResetToDefaultAsync(TweakRowViewModel row);
+
+    /// <summary>"Test it on this PC" (Optimization page only).</summary>
+    void Test(TweakRowViewModel row) { }
+}
+
+public sealed partial class TweakRowViewModel(Tweak tweak, ITweakRowOwner owner) : ObservableObject
 {
     public Tweak Tweak { get; } = tweak;
     public string Title => Tweak.Title;
@@ -29,16 +39,46 @@ public sealed partial class TweakRowViewModel(Tweak tweak, PrivacyViewModel owne
     public string ScopeTip => Tweak.Scope == TweakScope.Machine
         ? "Changes it for every account on this PC, so it goes through the admin helper (one approval)."
         : "Changes it only for your account. No admin approval needed.";
-    public CarsControl.Core.Help.Recommendation? Recommendation => CarsControl.Core.Help.Recommendations.ForPrivacy(Tweak.Id, Title, Tweak.Group == TweakGroup.Taskbar, HasCaution);
+    public CarsControl.Core.Help.Recommendation? Recommendation => Tweak.IsOptimization
+        ? (HasCaution ? null : RecommendationContext.For("optimize:" + Tweak.Id))
+        : CarsControl.Core.Help.Recommendations.ForPrivacy(Tweak.Id, Title, Tweak.Group == TweakGroup.Taskbar, HasCaution);
     public string Details => TweakEngine.Describe(Tweak);
+
+    // Optimization page: how sure we are, and when the change takes effect.
+    public string EvidenceText => OptimizeText.Evidence(Tweak.Evidence);
+    public string EvidenceTip => (Tweak.EvidenceNote ?? "") + (Tweak.SourceUrl is null ? "" : $"{Environment.NewLine}Source: {Tweak.SourceUrl}");
+    public bool HasSource => Tweak.SourceUrl is not null;
+    public string? TakesEffect => Tweak.TakesEffect is null ? null : "Takes effect " + Tweak.TakesEffect + ".";
+
+    public bool CanTest => Tweak.FrameTestable;
+
+    [RelayCommand]
+    private void Test() => owner.Test(this);
+
+    [RelayCommand]
+    private void OpenSource()
+    {
+        if (Tweak.SourceUrl is { } url) Platform.OpenUri(url);
+    }
 
     /// <summary>Accessible name for the switch ("No advertising ID").</summary>
     public override string ToString() => Title;
 
-    [ObservableProperty] private bool _isOn;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(CanSwitch), nameof(SwitchTip), nameof(AsShippedText))] private bool _isOn;
     [ObservableProperty] private bool _isPartly;
-    [ObservableProperty] private bool _isBusy;
-    [ObservableProperty] private bool _canUndo;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(CanSwitch))] private bool _isBusy;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(CanSwitch), nameof(SwitchTip), nameof(AsShippedText))] private bool _canUndo;
+
+    /// <summary>A "restores Windows' default" row (Game Mode) that's on as Windows ships it has nothing to switch back to.</summary>
+    private bool OnAsShipped => Tweak.RestoresWindowsDefault && IsOn && !CanUndo;
+    public bool CanSwitch => !IsBusy && !OnAsShipped;
+
+    /// <summary>Shown beside the disabled switch so it doesn't read as "off".</summary>
+    public string? AsShippedText => OnAsShipped ? "On, as Windows ships it" : null;
+    public string SwitchTip => OnAsShipped
+        ? "On, as Windows ships it. C.A.R.S. only turns it back on when something switched it off; to turn it off, use Windows Settings."
+        : Tweak.IsOptimization ? "On: applied. Off: puts back exactly what was there before."
+        : "On: the privacy-friendly setting is applied. Off: puts back exactly what was there before.";
     [ObservableProperty] private string? _status;
 
     internal bool Syncing { get; set; }
@@ -94,15 +134,13 @@ public sealed record CapabilityRow(string App, string Capability, string When, b
 /// add-ons and the camera/mic/location history. Your-account switches are changed here, as you, with a
 /// snapshot kept in cars.db; admin ones go through the helper, which keeps its own snapshot.
 /// </summary>
-public sealed partial class PrivacyViewModel : ObservableObject
+public sealed partial class PrivacyViewModel : ObservableObject, ITweakRowOwner
 {
-    private const string SnapshotKey = "tweak_snapshots_v1";
     private readonly HelperClient _helper;
+    private readonly TweakSwitcher _switcher;
     private readonly CarsDb _db;
     private readonly InventoryStore _inventory;
     private readonly AppSettings _settings;
-    private readonly string? _sid = WindowsIdentity.GetCurrent().User?.Value;
-    private Dictionary<string, List<SavedValue>> _snapshots = new();
 
     public ObservableCollection<TweakGroupViewModel> Groups { get; } = [];
     public ObservableCollection<AddOnRowViewModel> AddOns { get; } = [];
@@ -122,15 +160,15 @@ public sealed partial class PrivacyViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ApplyAllRecommendedCommand))]
     private bool _isBusy;
 
-    public PrivacyViewModel(HelperClient helper, CarsDb db, InventoryStore inventory, AppSettings settings)
+    public PrivacyViewModel(HelperClient helper, TweakSwitcher switcher, CarsDb db, InventoryStore inventory, AppSettings settings)
     {
         _helper = helper;
+        _switcher = switcher;
         _db = db;
         _inventory = inventory;
         _settings = settings;
-        LoadSnapshots();
         var build = Environment.OSVersion.Version.Build;
-        foreach (var g in TweakCatalog.Available(build).GroupBy(t => t.Group).OrderBy(g => g.Key))
+        foreach (var g in TweakCatalog.Available(build).Where(t => !t.IsOptimization).GroupBy(t => t.Group).OrderBy(g => g.Key))
         {
             var group = new TweakGroupViewModel(g.Key);
             foreach (var t in g) group.Rows.Add(new TweakRowViewModel(t, this));
@@ -151,18 +189,7 @@ public sealed partial class PrivacyViewModel : ObservableObject
         _ = RefreshAccessesAsync();
     }
 
-    private void ReadRow(TweakRowViewModel row)
-    {
-        var t = row.Tweak;
-        var state = TweakEngine.Read(t, t.Scope == TweakScope.Machine ? Registry.LocalMachine : Registry.CurrentUser);
-        row.Syncing = true;
-        row.IsOn = state == TweakState.On;
-        row.Syncing = false;
-        row.IsPartly = state == TweakState.Partly;
-        row.CanUndo = t.Scope == TweakScope.User ? _snapshots.ContainsKey(t.Id) : TweakSnapshots.HelperHasUndo(t, _sid);
-        row.Caution = t.Caution?.Invoke();
-        if (row.IsPartly && row.Status is null) row.Status = "Partly on (something else changed some of its settings)";
-    }
+    private void ReadRow(TweakRowViewModel row) => _switcher.ReadInto(row);
 
     private void UpdateSummaries()
     {
@@ -182,39 +209,14 @@ public sealed partial class PrivacyViewModel : ObservableObject
     /// Windows' default when C.A.R.S. never changed it).</summary>
     public async Task ChangeAsync(TweakRowViewModel row, bool on)
     {
-        if (row.IsBusy) return;
-        row.IsBusy = true;
-        row.Status = null;
-        try
-        {
-            var ok = await SetAsync(row.Tweak, on ? "apply" : "undo");
-            if (!ok.Ok) row.Status = ok.Message;
-            else Record(row.Tweak, on ? "Turned on" : "Undone");
-        }
-        finally
-        {
-            row.IsBusy = false;
-            ReadRow(row);
-            UpdateSummaries();
-        }
+        await _switcher.RunRowAsync(row, on ? "apply" : "undo");
+        UpdateSummaries();
     }
 
     public async Task ResetToDefaultAsync(TweakRowViewModel row)
     {
-        if (row.IsBusy) return;
-        row.IsBusy = true;
-        try
-        {
-            var ok = await SetAsync(row.Tweak, "default");
-            row.Status = ok.Ok ? "Back to the Windows default." : ok.Message;
-            if (ok.Ok) Record(row.Tweak, "Set to the Windows default");
-        }
-        finally
-        {
-            row.IsBusy = false;
-            ReadRow(row);
-            UpdateSummaries();
-        }
+        await _switcher.RunRowAsync(row, "default");
+        UpdateSummaries();
     }
 
     /// <summary>Taskbar buttons are layout preferences, not privacy: "Turn all on" never touches them
@@ -268,12 +270,12 @@ public sealed partial class PrivacyViewModel : ObservableObject
                     continue;
                 }
                 row.IsBusy = true;
-                var r = await SetAsync(row.Tweak, "apply");
+                var r = await _switcher.SetAsync(row.Tweak, "apply");
                 row.IsBusy = false;
                 if (r.Ok)
                 {
                     done++;
-                    Record(row.Tweak, "Turned on");
+                    _switcher.Record(row.Tweak, "Turned on");
                 }
                 else
                 {
@@ -292,57 +294,6 @@ public sealed partial class PrivacyViewModel : ObservableObject
             UpdateSummaries();
         }
     }
-
-    private async Task<(bool Ok, string Message)> SetAsync(Tweak t, string action)
-    {
-        if (t.Scope == TweakScope.User)
-        {
-            try
-            {
-                var root = Registry.CurrentUser;
-                switch (action)
-                {
-                    case "apply":
-                        if (!_snapshots.ContainsKey(t.Id)) _snapshots[t.Id] = TweakEngine.Snapshot(t, root).ToList();
-                        TweakEngine.Apply(t, root);
-                        break;
-                    case "undo" when _snapshots.TryGetValue(t.Id, out var saved):
-                        TweakEngine.Restore(t, saved, root);
-                        _snapshots.Remove(t.Id);
-                        break;
-                    default:
-                        TweakEngine.SetDefaults(t, root);
-                        _snapshots.Remove(t.Id);
-                        break;
-                }
-                SaveSnapshots();
-                if (t.Group is TweakGroup.Taskbar or TweakGroup.AI or TweakGroup.Ads) BroadcastSettingChange();
-                return (true, "Done.");
-            }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
-            {
-                return (false, $"Windows refused the change: {ex.Message}");
-            }
-        }
-
-        try
-        {
-            var r = await _helper.SendAsync(new TweakOp(t.Id, action), dryRun: HelperClient.DevUnelevated);
-            return r.Ok ? (true, r.Message ?? "Done.") : (false, r.Message ?? r.Status.ToString());
-        }
-        catch (HelperCancelledException)
-        {
-            return (false, "Admin approval was cancelled, so nothing changed.");
-        }
-        catch (HelperUnavailableException ex)
-        {
-            return (false, ex.Message);
-        }
-    }
-
-    private void Record(Tweak t, string what) =>
-        _db.AddHistory(new HistoryEntry(0, DateTime.Now, DateTime.Now, "privacy", $"tweak:{t.Id}", t.Title, "Privacy", null, null,
-            t.NeedsAdmin, "Succeeded", 0, what, TweakEngine.Describe(t)));
 
     // ---------- Store add-ons ----------
 
@@ -383,7 +334,11 @@ public sealed partial class PrivacyViewModel : ObservableObject
     private async Task RefreshAccessesAsync()
     {
         var apps = _inventory.Current?.Apps ?? [];
-        var (uses, packaged) = await Task.Run(() => (ConsentStore.Read(), StoreAddOnManager.DisplayNames()));
+        var (uses, packaged) = await Task.Run(() =>
+        {
+            var read = ConsentStore.Read();
+            return (read, StoreAddOnManager.DisplayNames(read.Where(u => u.ExePath is null).Select(u => u.App)));
+        });
         var rows = new List<CapabilityRow>();
         foreach (var u in uses)
         {
@@ -399,32 +354,5 @@ public sealed partial class PrivacyViewModel : ObservableObject
         Accesses.Clear();
         foreach (var r in rows.Take(40)) Accesses.Add(r);
         HasAccesses = Accesses.Count > 0;
-    }
-
-    // ---------- snapshots and Explorer refresh ----------
-
-    private void LoadSnapshots()
-    {
-        try
-        {
-            if (_db.GetSetting(SnapshotKey) is { Length: > 0 } json)
-                _snapshots = JsonSerializer.Deserialize<Dictionary<string, List<SavedValue>>>(json) ?? new();
-        }
-        catch (JsonException)
-        {
-            _snapshots = new();
-        }
-    }
-
-    private void SaveSnapshots() => _db.SetSetting(SnapshotKey, JsonSerializer.Serialize(_snapshots));
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, string lParam, uint flags, uint timeout, out IntPtr result);
-
-    /// <summary>Tells Explorer and the taskbar that settings changed, so most switches apply right away.</summary>
-    private static void BroadcastSettingChange()
-    {
-        const uint WmSettingChange = 0x001A, SmtoAbortIfHung = 0x0002;
-        _ = Task.Run(() => SendMessageTimeout(new IntPtr(0xFFFF), WmSettingChange, IntPtr.Zero, "TraySettings", SmtoAbortIfHung, 1000, out _));
     }
 }

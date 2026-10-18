@@ -33,4 +33,32 @@ public class IssueReportTests
         Assert.Contains("System.IO.IOException: disk said no", summary);
         Assert.Contains(nameof(Error_summaries_include_inner_errors_and_where_they_happened), summary);
     }
+
+    [Fact]
+    public void Other_accounts_profile_folders_are_removed_too()
+    {
+        var clean = IssueReport.Sanitize(@"Setup: C:\Users\JohnAdmin\AppData\Local\Temp\WinGet\x.exe and C:\Users\Alex\Desktop and C:\Users\Public\Documents",
+            "Alex", "DESK-01", @"C:\Users\Alex");
+        Assert.DoesNotContain("JohnAdmin", clean);
+        Assert.Contains(@"C:\Users\<another account>\AppData", clean);
+        Assert.Contains(@"C:\Users\<you>\Desktop", clean);
+        Assert.Contains(@"C:\Users\Public\Documents", clean); // not anybody's name
+    }
+
+    [Fact]
+    public void Cutting_never_splits_an_emoji()
+    {
+        var text = "ab\U0001F600cd"; // a, b, two UTF-16 units for the emoji, c, d
+        Assert.Equal("ab", IssueReport.Cut(text, 3));
+        Assert.Equal("ab\U0001F600", IssueReport.Cut(text, 4));
+        _ = Uri.EscapeDataString(IssueReport.Cut(text, 3)); // would throw on half an emoji
+    }
+
+    [Fact]
+    public void Even_huge_diagnostics_fit_the_link_limit()
+    {
+        var url = IssueReport.Url("https://github.com/x/y", "t", "what", new string('d', 20_000));
+        Assert.True(url.Length <= IssueReport.MaxUrlLength);
+        Assert.Contains("template=bug_report.yml", url);
+    }
 }

@@ -1,4 +1,4 @@
-# Performance measurements — 2026-10-15
+﻿# Performance measurements — 2026-10-15
 
 Measurements use Release x64 on the owner's normal PC, in a nonactivated TV test window with the installed copy left alone. They are observations under normal machine load, not a controlled cold-boot benchmark. CPU is process CPU divided by all logical processors; memory is working set in MiB. The browsing target is still unmet.
 
@@ -25,6 +25,9 @@ Raw JSON and logs stay under ignored `artifacts-perf`; the portable results belo
 The first launch overlapped normal development/machine activity. These two samples show the warm-start goal can be met; they do not prove the <1.5-second cold-start goal or the <250-MB browsing goal. The intermittent stall was not reproduced in the guarded pair; wider soak testing is still appropriate.
 
 ## ReadyToRun comparison
+
+**1.1 (2026-10-17), now the default:** three samples each on the TV test copy: plain 1,608 / 959 / 928 ms first paint, ReadyToRun 1,377 / 925 / 919 ms. Only the first (cold) start gains (~230 ms), which is the start after boot for a tray app; warm starts are dominated by WPF/WPF-UI XAML loading, not by JIT. Payload +38 MB unpacked, about +8 MB in the installer.
+
 
 An earlier two-sample comparison, before the final isolation/theme changes, measured plain Release at 1,580/1,159 ms and ReadyToRun at 1,367/1,084 ms. Published size increased from 42.1 to 50.2 MiB. The small sample and changing workload do not justify enabling it globally. `build-release.ps1 -ReadyToRun` retains an explicit comparison switch; the candidate uses the normal publish mode. Unused Mono.Posix native helpers are removed from the installer payload.
 

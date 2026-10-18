@@ -18,6 +18,9 @@ public partial class MainWindow : FluentWindow
     private bool _startHidden;
     private readonly Stopwatch _navTimer = new();
     private readonly DispatcherTimer _releaseTimer = new() { Interval = TimeSpan.FromMinutes(3) };
+    // While the window is in use: a minute after the last page switch, pages beyond the few most recent are released too.
+    private readonly DispatcherTimer _trimTimer = new() { Interval = TimeSpan.FromSeconds(60) };
+    internal const int PagesKeptWhileOpen = 4; // the current page and the three before it
     private Type? _currentPage;
 
     public MainWindow()
@@ -57,6 +60,7 @@ public partial class MainWindow : FluentWindow
         // released (their visual trees were most of the memory C.A.R.S. kept all day); they're rebuilt on the next visit.
         RootNavigation.SetServiceProvider(App.Services.GetRequiredService<PageCache>());
         _releaseTimer.Tick += (_, _) => { _releaseTimer.Stop(); ReleaseHiddenPages(); };
+        _trimTimer.Tick += (_, _) => { _trimTimer.Stop(); if (IsVisible) TrimPages(); };
         IsVisibleChanged += (_, _) =>
         {
             if (IsVisible)
@@ -70,6 +74,7 @@ public partial class MainWindow : FluentWindow
         RootNavigation.Navigated += (_, args) =>
         {
             _currentPage = args.Page?.GetType() ?? _currentPage;
+            _trimTimer.Stop(); _trimTimer.Start();
             var name = args.Page?.GetType().Name ?? "?";
             Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => PerfLog.Duration($"navigate → {name}", _navTimer.Elapsed));
         };
@@ -101,8 +106,10 @@ public partial class MainWindow : FluentWindow
             if (DevVisualDump.Enabled) Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => DevVisualDump.Write(this));
         };
 
-        // Ctrl+1…9 and Ctrl+0 jump between pages (the sidebar items expose no invoke action to keyboard/automation users).
-        Type[] order = [typeof(HomePage), typeof(AppsPage), typeof(RefreshPage), typeof(StoragePage), typeof(CleanupPage), typeof(HealthPage), typeof(PrivacyPage), typeof(BackupPage), typeof(HistoryPage), typeof(SettingsPage)];
+        // Ctrl+1…9 and Ctrl+0 jump between pages in sidebar order, Ctrl+, opens Settings (the sidebar items expose no invoke action
+        // to keyboard/automation users).
+        Type[] order = [typeof(HomePage), typeof(AppsPage), typeof(RefreshPage), typeof(StoragePage), typeof(CleanupPage), typeof(HealthPage), typeof(PrivacyPage), typeof(OptimizePage), typeof(BackupPage), typeof(HistoryPage)];
+        InputBindings.Add(new System.Windows.Input.KeyBinding(new CommunityToolkit.Mvvm.Input.RelayCommand(() => NavigateTo(typeof(SettingsPage))), System.Windows.Input.Key.OemComma, System.Windows.Input.ModifierKeys.Control));
         for (var n = 0; n < order.Length; n++)
         {
             var page = order[n];
@@ -155,6 +162,7 @@ public partial class MainWindow : FluentWindow
         "health" => typeof(HealthPage),
         "backup" or "sync" => typeof(BackupPage),
         "privacy" => typeof(PrivacyPage),
+        "optimize" or "optimization" => typeof(OptimizePage),
         "history" => typeof(HistoryPage),
         "settings" => typeof(SettingsPage),
         _ => null,
@@ -193,9 +201,33 @@ public partial class MainWindow : FluentWindow
         }
     }
 
+    /// <summary>
+    /// While the window is open: releases the pages beyond the <see cref="PagesKeptWhileOpen"/> most recently shown, so visiting
+    /// every page doesn't keep every page's visual tree. Going back to one rebuilds it (data stays in its view model).
+    /// </summary>
+    public void TrimPages()
+    {
+        var cache = App.Services.GetRequiredService<PageCache>();
+        var drop = cache.Beyond(PagesKeptWhileOpen, _currentPage);
+        if (drop.Count == 0) return;
+        ForgetPages(drop.ToHashSet());
+        cache.Release(drop, trimWorkingSet: false);
+    }
+
     /// <summary>Releases every page but the current one (see <see cref="PageCache"/>). Runs after three minutes in the tray.</summary>
     public void ReleaseHiddenPages()
     {
+        ForgetPages(null);
+        App.Services.GetRequiredService<PageCache>().Release(_currentPage);
+        // Nothing is drawn while the window is hidden, yet WPF's Direct3D device keeps ~95 MB of graphics memory mapped
+        // (write-combined pages, seen with !address -summary). Software rendering while hidden lets it go; ShowFromTray restores it.
+        System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+    }
+
+    /// <summary>Removes the navigation's own references to pages about to be released (all but the current one when null).</summary>
+    private void ForgetPages(HashSet<Type>? drop)
+    {
+        bool Dropped(Type t) => drop is null ? t != _currentPage : drop.Contains(t);
         // WPF-UI shows pages in a Frame whose back-history (journal) keeps every visited page object alive: empty it first.
         if (FindChild<System.Windows.Controls.Frame>(RootNavigation) is { } frame)
             while (frame.CanGoBack) frame.RemoveBackEntry();
@@ -207,17 +239,13 @@ public partial class MainWindow : FluentWindow
             if (typeof(Wpf.Ui.Controls.NavigationView).GetProperty("PageToNavigationItemDictionary",
                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
                     ?.GetValue(RootNavigation) is System.Collections.IDictionary map)
-                foreach (var page in map.Keys.Cast<object>().Where(p => p.GetType() != _currentPage).ToList()) map.Remove(page);
+                foreach (var page in map.Keys.Cast<object>().Where(p => Dropped(p.GetType())).ToList()) map.Remove(page);
             else PerfLog.Mark("page release: WPF-UI's page map wasn't found (renamed in an update?)");
         }
         catch (Exception ex) when (ex is System.Reflection.TargetException or InvalidOperationException or NotSupportedException or ArgumentException)
         {
             PerfLog.Mark("page release: couldn't prune WPF-UI's page map: " + ex.Message);
         }
-        App.Services.GetRequiredService<PageCache>().Release(_currentPage);
-        // Nothing is drawn while the window is hidden, yet WPF's Direct3D device keeps ~95 MB of graphics memory mapped
-        // (write-combined pages, seen with !address -summary). Software rendering while hidden lets it go; ShowFromTray restores it.
-        System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
     }
 
     private static T? FindChild<T>(DependencyObject root) where T : DependencyObject

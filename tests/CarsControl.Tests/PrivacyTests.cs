@@ -1,4 +1,4 @@
-using CarsControl.Contracts;
+﻿using CarsControl.Contracts;
 using CarsControl.Core.Elevation;
 using CarsControl.Core.Tweaks;
 using Microsoft.Win32;
@@ -17,7 +17,7 @@ public class TweakCatalogTests
             foreach (var v in t.Values)
             {
                 Assert.True(v.Recommended is int or string, $"{t.Id}: only DWORD and string values");
-                Assert.False(Equals(v.Recommended, v.Default), $"{t.Id}/{v.Name}: recommended equals the Windows default, so the switch would do nothing");
+                Assert.True(t.RestoresWindowsDefault || !Equals(v.Recommended, v.Default), $"{t.Id}/{v.Name}: recommended equals the Windows default, so the switch would do nothing");
                 Assert.False(v.Key.StartsWith('\\') || v.Key.StartsWith("HK", StringComparison.OrdinalIgnoreCase), $"{t.Id}: keys are relative to the hive");
             }
         }
@@ -33,7 +33,8 @@ public class TweakCatalogTests
             switch (t.Scope)
             {
                 case TweakScope.Machine:
-                    Assert.StartsWith("SOFTWARE\\", v.Key);
+                    Assert.True(v.Key.StartsWith("SOFTWARE\\", StringComparison.Ordinal) || t.IsOptimization && v.Key.StartsWith(@"SYSTEM\CurrentControlSet\Control\", StringComparison.Ordinal),
+                        $"{t.Id}: machine values live under SOFTWARE (optimizations may also use the SYSTEM control set)");
                     break;
                 case TweakScope.UserPolicy:
                     Assert.True(policy, $"{t.Id}: user policies live under Software\\Policies");
@@ -133,7 +134,7 @@ public class TweakEngineTests : IDisposable
             TweakEngine.Apply(t, _root);
             Assert.Equal(TweakState.On, TweakEngine.Read(t, _root));
             TweakEngine.Restore(t, saved, _root);
-            Assert.NotEqual(TweakState.On, TweakEngine.Read(t, _root));
+            if (!t.RestoresWindowsDefault) Assert.NotEqual(TweakState.On, TweakEngine.Read(t, _root)); // Game Mode: absent = Windows' default, on
         }
     }
 }

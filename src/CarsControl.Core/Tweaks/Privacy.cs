@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 
 namespace CarsControl.Core.Tweaks;
 
@@ -115,15 +115,20 @@ public static class StoreAddOnManager
         return result;
     }
 
-    /// <summary>Package name → the name you see ("windows.immersivecontrolpanel" → "Settings").</summary>
-    public static IReadOnlyDictionary<string, string> DisplayNames()
+    /// <summary>
+    /// Package name → the name you see ("windows.immersivecontrolpanel" → "Settings"), for <paramref name="packageNames"/> only:
+    /// reading DisplayName loads each package's resources, which for every installed package briefly took ~250 MB.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> DisplayNames(IEnumerable<string> packageNames)
     {
+        var wanted = packageNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (wanted.Count == 0) return result;
         foreach (var p in new Windows.Management.Deployment.PackageManager().FindPackagesForUser(string.Empty))
         {
             try
             {
-                if (!string.IsNullOrWhiteSpace(p.DisplayName) && !p.DisplayName.StartsWith("ms-resource:", StringComparison.OrdinalIgnoreCase))
+                if (wanted.Contains(p.Id.Name) && !string.IsNullOrWhiteSpace(p.DisplayName) && !p.DisplayName.StartsWith("ms-resource:", StringComparison.OrdinalIgnoreCase))
                     result.TryAdd(p.Id.Name, p.DisplayName);
             }
             catch (Exception)

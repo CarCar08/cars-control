@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using CarsControl.Contracts;
 using CarsControl.Core.Health;
 using CarsControl.Core.Updates;
@@ -30,6 +30,7 @@ internal static class HealthOps
                 WindowsUpdatePolicyOp p => ApplyPolicy(p, dryRun, log),
                 HideUpdateOp h => await HideUpdateAsync(h, dryRun, log, ct),
                 EnableSystemRestoreOp => await EnableRestoreAsync(dryRun, line, log, ct),
+                HibernationOp h => await SetHibernationAsync(h, dryRun, line, log, ct),
                 SensorsReadOp => await ReadSensorsAsync(dryRun, log),
                 InstallPawnIoOp => await InstallPawnIoAsync(dryRun, line, log, ct),
                 CopyCrashDumpOp c => await CopyDumpAsync(c, dryRun, log, parentSid, ct),
@@ -143,6 +144,13 @@ internal static class HealthOps
         const string script = "$ErrorActionPreference='Stop'; Enable-ComputerRestore -Drive 'C:\\'; 'System Protection is on for C:.'";
         log.Write("enable system restore on C:");
         return HelperOperations.RunFixedAsync(Tools.WindowsPowerShell, ["-NoProfile", "-NonInteractive", "-Command", script], "System Protection", dryRun, line, ct);
+    }
+
+    /// <summary>A fixed command; the only input is on or off.</summary>
+    private static Task<OpResult> SetHibernationAsync(HibernationOp op, bool dryRun, Action<string> line, HelperLog log, CancellationToken ct)
+    {
+        log.Write($"hibernation {(op.On ? "on" : "off")}");
+        return HelperOperations.RunFixedAsync(Tools.PowerCfg, ["/hibernate", op.On ? "on" : "off"], "Hibernation", dryRun, line, ct);
     }
 
     // ---------- sensors ----------

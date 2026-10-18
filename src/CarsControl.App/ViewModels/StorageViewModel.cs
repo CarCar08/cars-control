@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -94,6 +94,11 @@ public sealed partial class StorageViewModel : ObservableObject
         RefreshDrives();
         BuildFileDriveChips();
         BuildFileKindChips();
+        // The file-drive chips follow the drives read off the UI thread; rebuild them when the set of drives changes.
+        DriveSnapshot.Changed += () =>
+        {
+            if (!DriveSnapshot.Last.Select(d => d.Letter).SequenceEqual(FileDriveChips.Select(c => c.Key), StringComparer.OrdinalIgnoreCase)) OnScansChanged();
+        };
     }
 
     private static string DriveOf(string path) => path[..2].ToUpperInvariant();
@@ -110,10 +115,18 @@ public sealed partial class StorageViewModel : ObservableObject
     // ---------- drives and scanning ----------
 
     [RelayCommand]
-    public void RefreshDrives() =>
-        DriveCard.Sync(Drives, DriveCard.ReadAll(letter =>
-            (string.Equals(letter, ScanDrive, StringComparison.OrdinalIgnoreCase),
-             _scans.TryGetValue(letter, out var s) ? $"scanned {Format.Ago(s.When)}" : null)).ToList());
+    public void RefreshDrives() => BackgroundTasks.Run(RefreshDrivesAsync(), "storage drives");
+
+    /// <summary>Reads the drives off the UI thread (a spun-down hard disk can take seconds), then labels them here.</summary>
+    private async Task RefreshDrivesAsync()
+    {
+        var read = await DriveSnapshot.ReadAsync();
+        DriveCard.Sync(Drives, read.Select(c => c with
+        {
+            IsActive = string.Equals(c.Letter, ScanDrive, StringComparison.OrdinalIgnoreCase),
+            Note = _scans.TryGetValue(c.Letter, out var s) ? $"scanned {Format.Ago(s.When)}" : null,
+        }).ToList());
+    }
 
     /// <summary>Clicking a drive shows its saved scan instantly; Rescan (or a drive never scanned) scans it.</summary>
     [RelayCommand]

@@ -1,4 +1,4 @@
-<# Measures only a TV test copy, using its no-focus navigation hooks. No settings are changed. #>
+﻿<# Measures only a TV test copy, using its no-focus navigation hooks. No settings are changed. #>
 param([Parameter(Mandatory=$true)][string]$Exe, [string]$Label = 'Release', [int]$Samples = 3,
       [int]$IdleSeconds = 12, [string]$Output = 'artifacts-perf')
 $ErrorActionPreference = 'Stop'
@@ -30,6 +30,8 @@ function Navigate([string]$page) {
     throw "The test copy did not acknowledge $page; no measurement is valid for this sample."
   }
 }
+# What Task Manager's Memory column shows (private working set); WorkingSet64 also counts framework files shared with other processes.
+function PrivateWs($process) { [math]::Round((Get-CimInstance Win32_PerfRawData_PerfProc_Process -Filter "IDProcess=$($process.Id)").WorkingSetPrivate / 1MB, 1) }
 function CpuSample($process) {
   $process.Refresh(); $before = $process.TotalProcessorTime.TotalMilliseconds; $watch = [Diagnostics.Stopwatch]::StartNew()
   Start-Sleep -Seconds $IdleSeconds
@@ -52,12 +54,17 @@ for ($sample = 1; $sample -le $Samples; $sample++) {
     if (-not $paint) { throw 'No first-paint timing was recorded.' }
     $startup = [int]$paint.Matches[0].Groups[1].Value
     Start-Sleep -Seconds 8
-    $peak = 0.0; $pages = @()
+    $peak = 0.0; $peakPrivate = 0.0; $pages = @()
     foreach ($page in @('home','apps','refresh','storage','cleanup','health','privacy','backup','history','settings')) {
       Navigate $page; Start-Sleep -Milliseconds 1400; Navigate 'perf'; $process.Refresh()
       $working = [math]::Round($process.WorkingSet64 / 1MB, 1); $peak = [math]::Max($peak, $working)
-      $pages += [pscustomobject]@{ Page=$page; WorkingSetMiB=$working }
+      $private = PrivateWs $process; $peakPrivate = [math]::Max($peakPrivate, $private)
+      $pages += [pscustomobject]@{ Page=$page; WorkingSetMiB=$working; PrivateWorkingSetMiB=$private; ManagedMiB=$null }
     }
+    # What the app does a minute after the last page switch (MainWindow.TrimPages), triggered now.
+    Navigate 'trim'; Start-Sleep -Seconds 3; $process.Refresh()
+    $afterTrimPrivate = PrivateWs $process
+    $trimmed = Select-String -LiteralPath $log -Pattern 'pages released: (\d+); still alive after release \(should be 0\): (\d+)' | Select-Object -Last 1
     Navigate 'home'; Start-Sleep -Seconds 4
     $visibleCpu = CpuSample $process
     Navigate 'tray'; Start-Sleep -Seconds 2
@@ -69,10 +76,11 @@ for ($sample = 1; $sample -le $Samples; $sample++) {
     $trayPrivate = [math]::Round($process.PrivateMemorySize64/1MB,1)
     $trayReleased = [math]::Round($process.WorkingSet64/1MB,1)
     $released = Select-String -LiteralPath $log -Pattern 'pages released: (\d+); still alive after release \(should be 0\): (\d+)' | Select-Object -Last 1
-    $results += [pscustomobject]@{ Label=$Label; Sample=$sample; FirstPaintMs=$startup; BrowsingPeakMiB=$peak; TrayWorkingSetMiB=$trayBefore; TrayAfterReleaseMiB=$trayReleased; TrayPrivateMiB=$trayPrivate; PagesReleased=$(if($released){$released.Matches[0].Groups[1].Value}); PagesStillAlive=$(if($released){$released.Matches[0].Groups[2].Value}); VisibleCpuPercent=$visibleCpu; TrayCpuPercent=$trayCpu; Pages=$pages }
-    $results[-1] | Select-Object Label,Sample,FirstPaintMs,BrowsingPeakMiB,TrayWorkingSetMiB,TrayAfterReleaseMiB,TrayPrivateMiB,PagesStillAlive,TrayCpuPercent | Format-Table -AutoSize
+    $results += [pscustomobject]@{ Label=$Label; Sample=$sample; FirstPaintMs=$startup; BrowsingPeakMiB=$peak; BrowsingPeakPrivateMiB=$peakPrivate; AfterTrimPrivateMiB=$afterTrimPrivate; TrimStillAlive=$(if($trimmed){$trimmed.Matches[0].Groups[2].Value}); TrayWorkingSetMiB=$trayBefore; TrayAfterReleaseMiB=$trayReleased; TrayPrivateMiB=$trayPrivate; PagesReleased=$(if($released){$released.Matches[0].Groups[1].Value}); PagesStillAlive=$(if($released){$released.Matches[0].Groups[2].Value}); VisibleCpuPercent=$visibleCpu; TrayCpuPercent=$trayCpu; Pages=$pages }
+    $results[-1] | Select-Object Label,Sample,FirstPaintMs,BrowsingPeakMiB,BrowsingPeakPrivateMiB,AfterTrimPrivateMiB,TrimStillAlive,TrayWorkingSetMiB,TrayAfterReleaseMiB,TrayPrivateMiB,PagesStillAlive,TrayCpuPercent | Format-Table -AutoSize
   } finally {
     if (-not $process.HasExited) { Navigate 'quit'; if (-not $process.WaitForExit(15000)) { Stop-Process -Id $process.Id -Force } }
   }
 }
+if ($Samples -ge 1) { $results[-1].Pages | Format-Table Page, WorkingSetMiB, PrivateWorkingSetMiB -AutoSize }
 $results | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $outPath ($Label + '-results.json')) -Encoding UTF8

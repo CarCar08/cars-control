@@ -1,4 +1,4 @@
-<#
+﻿<#
   Photographs the installer's wizard in a sandbox (Windows PowerShell 5.1). Nothing is installed for real:
   Setup runs with --sandbox, so files go into a temp folder, no admin prompt, no registry. The wizard opens on
   the TV (CARS_DEV_INSTANCE=1, like the app's test copies) and never takes focus.
@@ -25,6 +25,29 @@ public static class SS {
   public struct RECT { public int L, T, R, B; }
 }
 "@
+# Window bounds in real screen pixels whatever this process's DPI awareness is (GetWindowRect is virtualized for a DPI-unaware
+# host, which cropped every screenshot on the 250% TV once). Its own class, so a reused PowerShell host never has to redefine one.
+if (-not ('CarsShotBounds' -as [type])) {
+  Add-Type @"
+using System; using System.Runtime.InteropServices;
+public static class CarsShotBounds {
+  [StructLayout(LayoutKind.Sequential)] public struct R { public int L, T, Rt, B; }
+  [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int a, out R r, int size);
+  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out R r);
+  [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr c);
+  /// Per-monitor DPI for this thread. The process-wide switch fails when the PowerShell host's manifest already set one, and
+  /// then window sizes are scaled: on the 250% TV a 960-wide window became 2400 and every size pass came out full-screen.
+  public static void PerMonitor() { SetThreadDpiAwarenessContext(new IntPtr(-4)); }
+  public static int[] Of(IntPtr h) {
+    R r;
+    if (DwmGetWindowAttribute(h, 9, out r, Marshal.SizeOf(typeof(R))) != 0) GetWindowRect(h, out r); // 9 = DWMWA_EXTENDED_FRAME_BOUNDS
+    return new[] { r.L, r.T, r.Rt, r.B };
+  }
+}
+"@
+}
+[CarsShotBounds]::PerMonitor()
+
 [SS]::SetProcessDpiAwarenessContext([IntPtr](-4)) | Out-Null
 $AE = [System.Windows.Automation.AutomationElement]; $TS = [System.Windows.Automation.TreeScope]
 New-Item -ItemType Directory -Force $Out | Out-Null
@@ -39,7 +62,7 @@ New-Item -ItemType Directory -Force $base | Out-Null
 
 function Shot($proc, $name) {
   $proc.Refresh(); $h = $proc.MainWindowHandle
-  $r = New-Object SS+RECT; [SS]::GetWindowRect($h, [ref]$r) | Out-Null
+  $b = [CarsShotBounds]::Of($h); $r = [pscustomobject]@{ L = $b[0]; T = $b[1]; R = $b[2]; B = $b[3] }
   $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
   $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc(); [SS]::PrintWindow($h, $hdc, 2) | Out-Null; $g.ReleaseHdc($hdc); $g.Dispose()
   $dpi = [SS]::GetDpiForWindow($h); if ($dpi -lt 96) { $dpi = 96 }

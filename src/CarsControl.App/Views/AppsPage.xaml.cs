@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -15,6 +15,8 @@ public partial class AppsPage : Page
         InitializeComponent();
         _vm = vm;
         DataContext = vm;
+        // In a narrow window the details panel gives up some width, so the list keeps its For and Size columns.
+        SizeChanged += (_, e) => DetailsCard.Width = e.NewSize.Width < 1000 ? 270 : 340;
     }
 
     /// <summary>0 = Installed, 1 = Get apps, 2 = Startup, 3 = Right-click menu.</summary>

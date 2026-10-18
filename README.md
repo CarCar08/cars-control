@@ -1,4 +1,4 @@
-# C.A.R.S. Control
+﻿# C.A.R.S. Control
 
 **Cleanup · Apps · Refresh · Storage** — and now **Health** and **Backup**. One Windows app to see, update, uninstall, clean up and keep an eye on everything on your PC, built to replace a pile of separate tools: package-manager front ends, uninstallers, disk analyzers, cleaners, startup and driver managers, hardware monitors and backup scripts.
 
@@ -26,11 +26,12 @@ That's it. Updates after that are one button (**Settings › About & updates**).
 | **Cleanup** | Temp files, caches, shader caches, broken shortcuts, the Recycle Bin and admin-only items, each measured before anything is deleted. |
 | **Health** | Specs and a shareable report, **sensors** (GPU, and CPU/board with the optional PawnIO driver), **drive health**, **blue-screen analysis** with WinDbg, exact **freeze** detection, sleep and boot times, **drivers** (and old copies Windows keeps), **what's using the PC**, and **network and VPN** status (Proton VPN and Tailscale cards appear when those are installed). Every value has a tooltip, and (?) buttons explain each section. |
 | **Privacy** | 38 switches for telemetry, ads, AI extras, Edge, Office and taskbar clutter, each showing what's set right now and undoable exactly. Remove the Store apps that came with Windows; see who used your camera, microphone and location. |
+| **Optimization** | Power mode, hibernation, Game Mode and other gaming features, visual effects and start-up, each labelled with how sure we are it helps (documented, measured, depends on your PC, or taste) and undoable exactly. No placebo tweaks, nothing that weakens security. |
 | **Backup & sync** | **Backups** to a folder (a cloud drive such as Proton Drive or OneDrive gives you an off-site copy), a USB drive recognised by its volume ID, or another disk; **your setup** synced between PCs; a **Your PCs** status board. |
 | **History** | Every operation with its full output, filters, CSV export, **Restore** for quarantined leftovers and **Find leftovers…** for apps removed earlier. |
 | **Settings** | Appearance, scheduled maintenance, Gaming mode, phone alerts, Health, the command palette, background work, the admin helper, holds for this PC, protected apps, ignored updates, updates. |
 
-**Keyboard:** **Ctrl+K** opens the command palette; **Ctrl+Alt+Space** (changeable) opens it from any program. **Ctrl+1 … Ctrl+9** and **Ctrl+0** switch pages.
+**Keyboard:** **Ctrl+K** opens the command palette; **Ctrl+Alt+Space** (changeable) opens it from any program. **Ctrl+1 … Ctrl+9** and **Ctrl+0** switch pages, **Ctrl+,** opens Settings.
 
 **More screenshots and how each page works:** [user guide](docs/user-guide/README.md).
 
@@ -49,7 +50,7 @@ All of it: [docs/user-guide/automation.md](docs/user-guide/automation.md).
 
 The app **always runs as you**. Per-user work (your apps, your files, your registry, your privacy switches) is done as you, with no prompt; running it elevated is the classic failure of other updaters on a standard account. Machine-wide work (Windows Update, apps for all users, system cleanup, drivers, services) goes to a small separate helper, `CarsControl.Helper.exe`, started through the normal Windows prompt, once per session.
 
-- The helper accepts **35 typed operations carrying identifiers only** (a winget id, a cleanup-rule id, a privacy-switch id, an update GUID, a drive letter, an Epic manifest id), validates each again on its own side, and works out what to run itself. There is no "run this command" and no "delete this path".
+- The helper accepts **37 typed operations carrying identifiers only** (a winget id, a cleanup-rule id, a privacy-switch id, an update GUID, a drive letter, an Epic manifest id), validates each again on its own side, and works out what to run itself. There is no "run this command" and no "delete this path".
 - It only talks to the `CarsControl.exe` that launched it, from its own administrators-only folder, and exits when idle or when the app closes.
 - **Unattended work never shows a prompt**: scheduled maintenance and Gaming mode use an admin session only if one is open, and otherwise wait for you.
 - Nothing persistent: no service, no scheduled task, no startup entry (except the per-user one you switch on).

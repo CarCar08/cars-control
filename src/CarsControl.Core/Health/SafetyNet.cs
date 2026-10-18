@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using CarsControl.Contracts;
 using CarsControl.Core.Elevation;
 using CarsControl.Core.Settings;
@@ -6,7 +6,7 @@ using Microsoft.Win32;
 
 namespace CarsControl.Core.Health;
 
-public enum RiskyChange { DriverUpdate, FeatureUpdate, PrivacyBatch, DriverCleanup, OldWindowsRemoval }
+public enum RiskyChange { DriverUpdate, FeatureUpdate, PrivacyBatch, DriverCleanup, OldWindowsRemoval, OptimizationBatch }
 
 /// <summary>Made: there's a restore point now. NotWanted/NoProtection: none was made and that's expected. Cancelled: the admin prompt
 /// was declined or no admin session is open. Failed: Windows or the helper wouldn't.</summary>
@@ -88,6 +88,7 @@ public static partial class SafetyNet
             RiskyChange.FeatureUpdate => "feature update",
             RiskyChange.PrivacyBatch => "privacy changes",
             RiskyChange.DriverCleanup => "driver cleanup",
+            RiskyChange.OptimizationBatch => "optimizations",
             _ => "old Windows removal",
         };
         var text = "C.A.R.S. before " + what + (string.IsNullOrWhiteSpace(detail) ? "" : ": " + detail);

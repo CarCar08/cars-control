@@ -1,4 +1,4 @@
-# Building and releasing C.A.R.S. Control
+﻿# Building and releasing C.A.R.S. Control
 
 For people who want to build it from source, change it, or cut a release. If you just want to use it, see [install.md](install.md).
 
@@ -121,7 +121,7 @@ Unsigned installers trigger SmartScreen's "Windows protected your PC" box. Optio
 
 ## Making changes safely
 
-Performance measurements: publish a Release copy, then run `tools\ui-audit\Measure-Performance.ps1 -Exe <absolute repository exe path> -Label <name> -Samples 3`. It measures first paint, memory after ten pages, and visible/tray CPU, using isolated data on the TV without activation. Results stay in ignored `artifacts-perf`. `build-release.ps1 -ReadyToRun` is available for comparisons; it increases payload size and is not the default. Release `-Output` accepts only a repository-root `artifacts` or `artifacts-<name>` directory, whose contents will be replaced.
+Performance measurements: publish a Release copy, then run `tools\ui-audit\Measure-Performance.ps1 -Exe <absolute repository exe path> -Label <name> -Samples 3`. It measures first paint, memory after ten pages, and visible/tray CPU, using isolated data on the TV without activation. Results stay in ignored `artifacts-perf`. Release builds are ReadyToRun (precompiled) since 1.1; `build-release.ps1 -NoReadyToRun` builds without it for comparisons. Release `-Output` accepts only a repository-root `artifacts` or `artifacts-<name>` directory, whose contents will be replaced.
 
 * **The helper is the security boundary.** A new elevated operation is a new record in `CarsControl.Contracts\HelperProtocol.cs` (identifiers only, never a path or command line), a handler in `CarsControl.Core\Elevation\` that **validates every identifier against its own allow-list or definition**, a rejection test in `tests\` and an entry in [security.md](security.md). Operations that run unattended must work over an already-open session (`SendIfConnectedAsync`) and never start one.
 * **Anything destructive says what it will do first** and, where it can, is undoable (privacy switches snapshot their previous value; leftovers go to quarantine; the Recycle Bin, not delete).

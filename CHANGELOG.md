@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.0 — Optimization page, faster and lighter (2026-10-17)
+
+**Optimization page** (new, Ctrl+8; Settings moves to Ctrl+,)
+- Power mode (Best power efficiency / Balanced / Best performance), with a one-click switch to Windows' Balanced plan and back when another plan hides power modes; hibernation; full shutdown instead of fast startup.
+- Game Mode, background game recording, hardware-accelerated GPU scheduling, mouse acceleration, animations, transparency, start-up delay, and sharing Windows updates only on your own network.
+- Every switch says **how sure we are it helps** (Documented, Measured, Depends on your PC, or Your preference), with the reason and a source, and switches back exactly. **Apply recommended** for your kind of PC lists every change first. No placebo tweaks and nothing that weakens security; what's left out on purpose is listed on the page.
+- **Test it on this PC**: records a minute of a game, makes the change, records another minute, and only calls it better or worse when the difference beats the game's own variation. Keep or undo it right there. Uses Intel PresentMon, fetched once from its official release and checked before every use.
+
+**Faster and lighter**
+- Pages you haven't used for a while are released while the window is open too, and freed memory goes back to Windows: about 105 MB at Home and 140 MB after browsing every page (what Task Manager shows), 15–40 MB in the tray.
+- The window appears before Home starts reading drives and the network; a backup hard disk that has spun down can no longer freeze Home, Storage or the command palette.
+- The first start after boot is about 0.2 s faster (precompiled code).
+- Opening Privacy no longer briefly takes about 250 MB.
+
+**Fixes**
+- Command palette shortcuts to a tab (Free up space, Scan drive, Settings sections…) open that tab again.
+- Bug reports also hide other accounts' folder names, and Report it no longer fails on an error containing an emoji.
+- Salad and Proton VPN mentions follow apps you install or remove while C.A.R.S. runs.
+
 ## 1.0.0 — the public release (2026-10-17)
 
 The first public release: source, issues and releases on GitHub, with the user guide and FAQ.

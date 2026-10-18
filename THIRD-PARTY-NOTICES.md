@@ -1,4 +1,4 @@
-# Third-party notices
+﻿# Third-party notices
 
 C.A.R.S. Control is licensed under the [MIT License](LICENSE). It includes, unmodified, the components below, each under its own
 licence. This file ships with every installed copy (`C:\Program Files\CarsControl\THIRD-PARTY-NOTICES.md`, also reachable from
@@ -50,6 +50,7 @@ Copyright 2010-2025 James F. Bellinger.
 | Component | What | Where it comes from |
 |---|---|---|
 | .NET 10 Desktop Runtime | Installed by Setup when it's missing | Microsoft (`builds.dotnet.microsoft.com`), SHA-512 checked |
+| Intel PresentMon 2.6.0 | Records frame times for Optimization › Test it on this PC; kept in `C:\ProgramData\CarsControl\tools` | Its official release (https://github.com/GameTechDev/PresentMon), size and SHA-256 pinned and checked before every run; MIT licence |
 | PawnIO 2.2.0 | The sensor driver, installed from Health › Sensors | Its official release (https://github.com/namazso/PawnIO.Setup), SHA-256 pinned; see its project for its licence |
 | WinDbg | Microsoft's debugger, installed from Health › Crashes | winget (`Microsoft.WinDbg`), Microsoft's licence terms |
 | Debug symbols | Downloaded by WinDbg when analysing a crash | Microsoft's symbol server |

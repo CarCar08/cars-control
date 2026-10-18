@@ -1,4 +1,4 @@
-<ui:FluentWindow
+﻿<ui:FluentWindow
     x:Class="CarsControl.App.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -42,6 +42,7 @@
                 <ui:NavigationViewItem NavigationCacheMode="Disabled" Content="Cleanup" Icon="{ui:SymbolIcon Broom24}" TargetPageType="{x:Type views:CleanupPage}" ToolTip="Review temporary files and caches before choosing what to remove." />
                 <ui:NavigationViewItem NavigationCacheMode="Disabled" Content="Health" Icon="{ui:SymbolIcon HeartPulse24}" TargetPageType="{x:Type views:HealthPage}" ToolTip="Inspect hardware readings, drive health, crashes, drivers and current activity." />
                 <ui:NavigationViewItem NavigationCacheMode="Disabled" Content="Privacy" Icon="{ui:SymbolIcon ShieldLock24}" TargetPageType="{x:Type views:PrivacyPage}" ToolTip="Review privacy switches with explanations, cautions and saved undo values." />
+                <ui:NavigationViewItem NavigationCacheMode="Disabled" Content="Optimization" Icon="{ui:SymbolIcon Gauge24}" TargetPageType="{x:Type views:OptimizePage}" ToolTip="Power, gaming, visual effects and start-up settings, each labelled with how sure we are it helps, with exact undo." />
                 <ui:NavigationViewItem NavigationCacheMode="Disabled" Content="Backup &amp; sync" Icon="{ui:SymbolIcon CloudArrowUp24}" TargetPageType="{x:Type views:BackupPage}" ToolTip="Configure file backups, share selected preferences and review your PCs." />
                 <ui:NavigationViewItem NavigationCacheMode="Disabled" Content="History" Icon="{ui:SymbolIcon History24}" TargetPageType="{x:Type views:HistoryPage}" ToolTip="Review operation results and supported restore actions." />
             </ui:NavigationView.MenuItems>

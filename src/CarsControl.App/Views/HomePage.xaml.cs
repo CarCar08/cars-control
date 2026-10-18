@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using CarsControl.App.Services;
 using CarsControl.App.ViewModels;
@@ -12,7 +12,11 @@ public partial class HomePage : Page
     {
         InitializeComponent();
         DataContext = vm;
-        Loaded += (_, _) => { if (IsVisible) Services.BackgroundTasks.Run(vm.OnShownAsync(), "home refresh"); };
+        // After the first frame: Home's refresh reads drives, network and history, and the window should appear first.
+        Loaded += (_, _) => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, () =>
+        {
+            if (IsVisible) Services.BackgroundTasks.Run(vm.OnShownAsync(), "home refresh");
+        });
         Unloaded += (_, _) => vm.OnHidden();
         IsVisibleChanged += (_, _) =>
         {

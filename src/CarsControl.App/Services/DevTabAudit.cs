@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Automation.Peers;
@@ -21,8 +21,12 @@ namespace CarsControl.App.Services;
 ///   TRAP        the walk never returned to its start within 400 stops
 ///   NO STOPS    a page you can't reach with the keyboard at all
 /// </summary>
-internal static class DevTabAudit
+internal static partial class DevTabAudit
 {
+    /// <summary>Text that's a .NET type name ("System.Windows.Controls.TextBlock", "CarsControl.App.ViewModels.Row"), not a file name.</summary>
+    [System.Text.RegularExpressions.GeneratedRegex(@"^(System\.Windows|CarsControl\.(App|Core|Contracts))(\.[A-Z]\w*)+$")]
+    private static partial System.Text.RegularExpressions.Regex TypeName();
+
     public static bool Enabled => App.IsDevInstance;
 
     public static async Task RunAsync(MainWindow window)
@@ -33,7 +37,7 @@ internal static class DevTabAudit
         (string Name, Type Page)[] pages =
         [
             ("Home", typeof(Views.HomePage)), ("Apps", typeof(Views.AppsPage)), ("Refresh", typeof(Views.RefreshPage)),
-            ("Storage", typeof(Views.StoragePage)), ("Cleanup", typeof(Views.CleanupPage)), ("Health", typeof(Views.HealthPage)), ("Privacy", typeof(Views.PrivacyPage)), ("Backup & sync", typeof(Views.BackupPage)),
+            ("Storage", typeof(Views.StoragePage)), ("Cleanup", typeof(Views.CleanupPage)), ("Health", typeof(Views.HealthPage)), ("Privacy", typeof(Views.PrivacyPage)), ("Optimization", typeof(Views.OptimizePage)), ("Backup & sync", typeof(Views.BackupPage)),
             ("History", typeof(Views.HistoryPage)), ("Settings", typeof(Views.SettingsPage)),
         ];
         foreach (var (name, page) in pages)
@@ -124,7 +128,7 @@ internal static class DevTabAudit
             }
             if (element is not TextBlock { Text.Length: > 0 } text) continue;
             // An element shown through a text template, or a view model without a template, prints its type name.
-            if (text.Text.StartsWith("System.Windows.", StringComparison.Ordinal) || text.Text.StartsWith("CarsControl.", StringComparison.Ordinal))
+            if (TypeName().IsMatch(text.Text))
             { report.AppendLine($"  HELP: TYPE NAME SHOWN {text.Text}"); flags++; }
             if (ReferenceEquals(text.Style, text.TryFindResource("SectionTitle")) && text.Parent is FrameworkElement section)
             {

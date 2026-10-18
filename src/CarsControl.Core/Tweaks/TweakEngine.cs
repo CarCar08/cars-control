@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Win32;
 
 namespace CarsControl.Core.Tweaks;
@@ -24,7 +24,8 @@ public static class TweakEngine
     private static bool IsRecommended(RegistryKey root, TweakValue v)
     {
         using var k = root.OpenSubKey(v.Key);
-        var current = k?.GetValue(v.Name);
+        // A missing value means Windows' default (Game Mode is on when AutoGameModeEnabled doesn't exist).
+        var current = k?.GetValue(v.Name) ?? v.Default;
         return current is not null && Same(current, v.Recommended);
     }
 

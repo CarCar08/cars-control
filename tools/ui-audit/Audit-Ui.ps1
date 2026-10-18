@@ -1,4 +1,4 @@
-<#
+﻿<#
   C.A.R.S. Control UI audit (Windows PowerShell 5.1). Drives a *dev* instance through UI Automation:
     1. Scroll check: every scrollable list on every page must have a finite viewport and be scrollable
        when its content overflows (the round-1 bug: WPF-UI wrapped pages in an unbounded scroll viewer,
@@ -10,6 +10,7 @@
   Usage:  powershell -ExecutionPolicy Bypass -File tools\ui-audit\Audit-Ui.ps1
 #>
 param([string]$Exe = (Get-ChildItem "$PSScriptRoot\..\..\src\CarsControl.App\bin\Debug" -Recurse -Filter CarsControl.exe | Sort-Object LastWriteTime | Select-Object -Last 1).FullName,
+      # Never 'privacy' or 'optimize': their switches change your own account for real even in a test copy.
       [string[]]$Pages = @('home','apps','refresh','storage','cleanup','history','settings'),
       [switch]$ScrollOnly)
 

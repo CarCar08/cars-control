@@ -1,4 +1,4 @@
-<#
+﻿<#
   Screenshot helper for the dev instance (Windows PowerShell 5.1):
     -Page <name>       navigate first (via `CarsControl.exe --page`, handled by the running instance)
     -Select <name>     select the list row with this accessible name (rows are named after the app/file)
@@ -22,6 +22,29 @@ public static class WS {
   public struct RECT { public int L, T, R, B; }
 }
 "@
+# Window bounds in real screen pixels whatever this process's DPI awareness is (GetWindowRect is virtualized for a DPI-unaware
+# host, which cropped every screenshot on the 250% TV once). Its own class, so a reused PowerShell host never has to redefine one.
+if (-not ('CarsShotBounds' -as [type])) {
+  Add-Type @"
+using System; using System.Runtime.InteropServices;
+public static class CarsShotBounds {
+  [StructLayout(LayoutKind.Sequential)] public struct R { public int L, T, Rt, B; }
+  [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int a, out R r, int size);
+  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out R r);
+  [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr c);
+  /// Per-monitor DPI for this thread. The process-wide switch fails when the PowerShell host's manifest already set one, and
+  /// then window sizes are scaled: on the 250% TV a 960-wide window became 2400 and every size pass came out full-screen.
+  public static void PerMonitor() { SetThreadDpiAwarenessContext(new IntPtr(-4)); }
+  public static int[] Of(IntPtr h) {
+    R r;
+    if (DwmGetWindowAttribute(h, 9, out r, Marshal.SizeOf(typeof(R))) != 0) GetWindowRect(h, out r); // 9 = DWMWA_EXTENDED_FRAME_BOUNDS
+    return new[] { r.L, r.T, r.Rt, r.B };
+  }
+}
+"@
+}
+[CarsShotBounds]::PerMonitor()
+
 [WS]::SetProcessDpiAwarenessContext([IntPtr](-4)) | Out-Null   # per-monitor v2: real pixel sizes on every monitor
 
 # Windows scales the 4K TV to 250%: the window is really 2.5x bigger than the DIP size the app lays out in.
@@ -64,7 +87,7 @@ if ($ScrollPercent -ge 0) {
   if ($big) { (Pat $big ([System.Windows.Automation.ScrollPattern]::Pattern)).SetScrollPercent(-1, $ScrollPercent); Start-Sleep -Milliseconds 500 }
 }
 $h = $proc.MainWindowHandle
-$r = New-Object WS+RECT; [WS]::GetWindowRect($h, [ref]$r) | Out-Null
+$b = [CarsShotBounds]::Of($h); $r = [pscustomobject]@{ L = $b[0]; T = $b[1]; R = $b[2]; B = $b[3] }
 $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
 $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc(); [WS]::PrintWindow($h, $hdc, 2) | Out-Null; $g.ReleaseHdc($hdc); $g.Dispose()
 Save-Shot $bmp $Out $h; $bmp.Dispose()

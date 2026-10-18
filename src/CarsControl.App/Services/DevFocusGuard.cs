@@ -26,6 +26,16 @@ public static class DevFocusGuard
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hwnd);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int key);
+    [DllImport("user32.dll")] private static extern bool GetCursorPos(out Point point);
+    [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Point { public int X, Y; }
+
+    /// <summary>You clicked the test copy yourself (left button down over one of its windows): let it have the foreground.</summary>
+    private static bool ClickedByYou() =>
+        GetAsyncKeyState(0x01) < 0 && GetCursorPos(out var p) && IsOwn(WindowFromPoint(p));
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder name, int max);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int max);
 
@@ -61,6 +71,7 @@ public static class DevFocusGuard
     private static void OnForeground(IntPtr hwnd)
     {
         if (!IsOwn(hwnd)) { Remember(hwnd); return; }
+        if (ClickedByYou()) return;
         var cls = new System.Text.StringBuilder(256); GetClassName(hwnd, cls, cls.Capacity);
         var title = new System.Text.StringBuilder(256); GetWindowText(hwnd, title, title.Capacity);
         PerfLog.Mark($"FOREGROUND TAKEN by test copy window class '{cls}' title '{title}' visible {IsWindowVisible(hwnd)}; handing it back");
@@ -82,7 +93,7 @@ public static class DevFocusGuard
 
         source.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
         {
-            if (msg == WM_ACTIVATE && (wParam.ToInt64() & 0xFFFF) != WA_INACTIVE)
+            if (msg == WM_ACTIVATE && (wParam.ToInt64() & 0xFFFF) != WA_INACTIVE && !ClickedByYou())
             {
                 PerfLog.Mark($"ACTIVATED: test copy window '{window.Title}' (foreground: {(IsOwn(GetForegroundWindow()) ? "taken, handing it back" : "not taken")}). Caused by:{Environment.NewLine}{new StackTrace(1, false)}");
                 var back = _lastOther;
