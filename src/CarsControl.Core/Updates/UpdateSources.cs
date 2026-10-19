@@ -64,7 +64,37 @@ public static class UpdateSources
     public static async Task<IReadOnlyList<UpdateCandidate>> WindowsUpdateAsync(CancellationToken ct)
     {
         var updates = await WindowsUpdateApi.SearchAsync(ct);
-        return updates.Where(u => !CoveredByOtherSource(u.Title)).Select(u => new UpdateCandidate
+        var driversExcluded = DriversExcludedByPolicy();
+        return updates.Where(u => !CoveredByOtherSource(u.Title)).Select(u => ToCandidate(u, driversExcluded)).ToList();
+    }
+
+    /// <summary>"Don't include drivers with Windows updates" (Group Policy, or the same value set without it). Windows then never
+    /// installs drivers through Windows Update, but a search through its API still lists them.</summary>
+    public static bool DriversExcludedByPolicy()
+    {
+        foreach (var key in new[] { @"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate", @"SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" })
+        {
+            try
+            {
+                using var k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(key);
+                if (k?.GetValue("ExcludeWUDriversInQualityUpdate") is int v && v == 1) return true;
+            }
+            catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+            {
+                // Unreadable: treat as not set.
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Optional means Windows itself wouldn't install it: marked optional, not recommended, or a driver on a PC set
+    /// not to take drivers from Windows Update.</summary>
+    internal static UpdateCandidate ToCandidate(WuUpdate u) => ToCandidate(u, u.IsDriver && DriversExcludedByPolicy());
+
+    internal static UpdateCandidate ToCandidate(WuUpdate u, bool driverPolicyExcludes)
+    {
+        var optional = u.Optional || !u.Recommended || (u.IsDriver && driverPolicyExcludes);
+        return new()
         {
             Key = $"wu:{u.UpdateId}",
             Source = UpdateSource.WindowsUpdate,
@@ -72,14 +102,20 @@ public static class UpdateSources
             AvailableVersion = u.KbArticle,
             NeedsAdmin = true,
             IsDriver = u.IsDriver,
+            IsOptional = optional,
             WuUpdateId = u.UpdateId,
             DownloadBytes = u.MaxDownloadBytes > 0 ? u.MaxDownloadBytes : null,
-            // Settings › This PC can hold driver updates back (on the development PC: the dxgkrnl BSOD investigation).
-            SelectedByDefault = !(u.IsDriver && ActiveProfile.Current.HoldDriverUpdates),
-            Note = !u.IsDriver ? null
+            // Optional items are never ticked: Windows doesn't install them itself, and old generic drivers can replace the
+            // PC maker's own. Settings › This PC can also hold the regular driver updates back.
+            SelectedByDefault = !optional && !(u.IsDriver && ActiveProfile.Current.HoldDriverUpdates),
+            Note = optional
+                ? (u.IsDriver && driverPolicyExcludes ? "Driver — this PC is set not to take drivers from Windows Update, so Windows wouldn't install it. Only worth it if a device isn't working."
+                   : u.IsDriver ? "Optional driver — Windows doesn't install it on its own. Only worth it if a device isn't working."
+                   : "Optional — Windows doesn't install it on its own.")
+                : !u.IsDriver ? null
                 : ActiveProfile.Current.HoldDriverUpdates ? $"Driver — unticked by default: {ActiveProfile.Current.HoldDriverUpdatesReason ?? "you're holding driver updates"}"
                 : "Driver update",
-        }).ToList();
+        };
     }
 
     /// <summary>WSL is also offered through Windows Update, but the WSL source updates it (as you, which

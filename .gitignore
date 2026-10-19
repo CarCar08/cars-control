@@ -12,3 +12,8 @@ tools/ui-audit/screens/
 tools/ui-audit/last-report.txt
 artifacts*/
 tools/ui-audit/last-keyboard-report.txt
+
+# The Mac build host for scripts/mac.sh (personal)
+.mac-host
+macos/.build/
+macos/Resources/AppIcon.png

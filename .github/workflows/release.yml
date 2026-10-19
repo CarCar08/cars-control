@@ -47,7 +47,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = '${{ github.ref_name }}'
-          $previous = gh release list --repo '${{ github.repository }}' --limit 30 --json tagName --jq '.[].tagName' | Where-Object { $_ -ne $tag } | Select-Object -First 1
+          # Windows releases only: Mac releases (mac-v1.2.3) share the repository but have no Windows installer.
+          $previous = gh release list --repo '${{ github.repository }}' --limit 50 --json tagName --jq '.[].tagName' | Where-Object { $_ -ne $tag -and $_ -match '^v\d' } | Select-Object -First 1
           if (-not $previous) { Write-Host 'No earlier release to update from; skipping.'; exit 0 }
           New-Item -ItemType Directory -Force previous | Out-Null
           gh release download $previous --repo '${{ github.repository }}' --pattern 'CarsControl-Setup-*.exe' --dir previous

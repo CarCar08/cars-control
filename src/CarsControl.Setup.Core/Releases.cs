@@ -66,7 +66,8 @@ namespace CarsControl.Setup
         }
 
         /// <summary>The newest release newer than <paramref name="current"/> that has a setup file and a checksum
-        /// list. Pre-releases only count when <paramref name="includePreReleases"/> or you're already on one.</summary>
+        /// list. Pre-releases only count when <paramref name="includePreReleases"/> or you're already on one. Mac releases
+        /// (tags <c>mac-v…</c>, in the same repository) are never picked.</summary>
         public static ReleaseInfo? PickUpdate(string releasesJson, SemVer current, bool includePreReleases)
         {
             using (var doc = JsonDocument.Parse(releasesJson))
@@ -74,7 +75,7 @@ namespace CarsControl.Setup
                 var items = doc.RootElement.ValueKind == JsonValueKind.Array ? doc.RootElement.EnumerateArray().ToList() : new List<JsonElement> { doc.RootElement };
                 var wantPre = includePreReleases || current.IsPreRelease;
                 return items.Select(FromGitHub)
-                    .Where(r => r != null && !r.Draft && (wantPre || !r.PreRelease) && r.SetupAsset != null && r.Checksums != null && r.Version > current)
+                    .Where(r => r != null && !r.Draft && r.Tag.StartsWith("v", StringComparison.OrdinalIgnoreCase) && (wantPre || !r.PreRelease) && r.SetupAsset != null && r.Checksums != null && r.Version > current)
                     .OrderByDescending(r => r!.Version)
                     .FirstOrDefault();
             }

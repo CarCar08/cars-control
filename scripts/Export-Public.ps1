@@ -26,7 +26,11 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 # Working notes that stay in the private repository.
 $private = @('AGENTS.md', 'CLAUDE.md', 'docs/my-setup.md', 'docs/dev/STATUS.md', 'docs/dev/RELEASE-READINESS.md', 'docs/dev/public-scan-patterns.txt')
 
-$files = @(git -C $root ls-files) | Where-Object { $_ -and $private -notcontains $_ }
+# The Mac app stays private until its first release (its fixtures in shared/ are public: the Windows tests read them).
+$privateFolders = @('macos/')
+$private += @('scripts/mac.sh', '.github/workflows/macos.yml')
+
+$files = @(git -C $root ls-files) | Where-Object { $f = $_; $f -and $private -notcontains $f -and -not ($privateFolders | Where-Object { $f.StartsWith($_) }) }
 if ($files.Count -lt 50) { throw "Only $($files.Count) tracked files found; is $root the repository?" }
 
 # ---------- scan ----------

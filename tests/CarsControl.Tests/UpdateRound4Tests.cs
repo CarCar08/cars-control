@@ -57,6 +57,29 @@ public class UpToDateTests
     }
 
     [Fact]
+    public void Optional_windows_updates_are_never_ticked_or_counted() // a dad's PC was offered 14 ancient Intel/Realtek drivers, all ticked
+    {
+        var optional = UpdateSources.ToCandidate(new WuUpdate("00000000-0000-0000-0000-000000000001", "INTEL - System - 7/18/1968 12:00:00 AM - 10.1.14.7", true, 1000, null, Optional: true), false);
+        Assert.True(optional.IsOptional);
+        Assert.False(optional.SelectedByDefault);
+        Assert.StartsWith("Optional driver", optional.Note);
+
+        var regular = UpdateSources.ToCandidate(new WuUpdate("00000000-0000-0000-0000-000000000002", "2026-10 Cumulative Update for Windows 11", false, 1000, "KB5099999"), false);
+        Assert.False(regular.IsOptional);
+        Assert.True(regular.SelectedByDefault);
+
+        // What that PC actually returned: not marked optional, but not recommended either.
+        var notRecommended = UpdateSources.ToCandidate(new WuUpdate("00000000-0000-0000-0000-000000000003", "Realtek - Net - 4/9/2015 12:00:00 AM - 9.1.409.2015", true, 1000, null, Optional: false, Recommended: false), false);
+        Assert.True(notRecommended.IsOptional);
+        Assert.False(notRecommended.SelectedByDefault);
+
+        // A recommended driver on a PC set not to take drivers from Windows Update.
+        var byPolicy = UpdateSources.ToCandidate(new WuUpdate("00000000-0000-0000-0000-000000000004", "Intel - net - 19.51.50.2", true, 1000, null), true);
+        Assert.True(byPolicy.IsOptional);
+        Assert.Contains("set not to take drivers", byPolicy.Note);
+        Assert.False(UpdateSources.ToCandidate(new WuUpdate("00000000-0000-0000-0000-000000000005", "2026-10 Cumulative Update", false, 1000, "KB1"), true).IsOptional);
+    }
+    [Fact]
     public void Winget_with_nothing_newer_is_up_to_date_not_a_failure()
     {
         var r = WingetErrorMap.Interpret(-1978335189, ["No available upgrade found.", "No newer package versions are available from the configured sources."]);

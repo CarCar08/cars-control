@@ -180,7 +180,7 @@ public sealed class SelfUpdateService
         {
             try
             {
-                using var response = await http.GetAsync($"https://api.github.com/repos/{repo}/releases?per_page=15");
+                using var response = await http.GetAsync($"https://api.github.com/repos/{repo}/releases?per_page=30");
                 if (response.IsSuccessStatusCode) return (await response.Content.ReadAsStringAsync(), Via.Http);
             }
             catch (HttpRequestException)
@@ -191,7 +191,7 @@ public sealed class SelfUpdateService
         // A private repository answers "not found" to anyone who isn't signed in: ask through the GitHub CLI.
         if (FindGh() is { } gh)
         {
-            var r = await ProcessRunner.RunAsync(gh, ["api", $"repos/{repo}/releases?per_page=15"], null, TimeSpan.FromSeconds(30));
+            var r = await ProcessRunner.RunAsync(gh, ["api", $"repos/{repo}/releases?per_page=30"], null, TimeSpan.FromSeconds(30));
             if (r.ExitCode == 0 && !r.TimedOut && r.Stdout.TrimStart().StartsWith('[')) return (r.Stdout, Via.Gh);
         }
         return (null, Via.Http);

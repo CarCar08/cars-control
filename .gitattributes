@@ -1,0 +1,5 @@
+
+# Built and run on macOS: Unix line endings, whatever this checkout's settings are.
+*.sh text eol=lf
+macos/** text eol=lf
+macos/**/*.png binary

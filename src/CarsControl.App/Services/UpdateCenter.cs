@@ -110,8 +110,18 @@ public sealed class UpdateCenter
         {
             var rules = _db.IgnoreRules();
             return Order.SelectMany(s => _states[s].Items)
-                .Where(c => !c.IsCheckAction && !CarsDb.IsIgnored(rules, c.Key, c.AvailableVersion))
+                .Where(c => !c.IsCheckAction && !c.IsOptional && !CarsDb.IsIgnored(rules, c.Key, c.AvailableVersion))
                 .ToList();
+        }
+    }
+
+    /// <summary>Optional Windows Update items (mostly drivers Windows itself wouldn't install): shown apart, never counted.</summary>
+    public IReadOnlyList<UpdateCandidate> Optional
+    {
+        get
+        {
+            var rules = _db.IgnoreRules();
+            return Order.SelectMany(s => _states[s].Items).Where(c => c.IsOptional && !CarsDb.IsIgnored(rules, c.Key, c.AvailableVersion)).ToList();
         }
     }
 
@@ -132,7 +142,7 @@ public sealed class UpdateCenter
     public IEnumerable<UpdateCandidate> ItemsFor(UpdateSource s)
     {
         var rules = _db.IgnoreRules();
-        return _states[s].Items.Where(c => !CarsDb.IsIgnored(rules, c.Key, c.AvailableVersion));
+        return _states[s].Items.Where(c => !c.IsOptional && !CarsDb.IsIgnored(rules, c.Key, c.AvailableVersion));
     }
 
     /// <summary>Runs the stale sources (all of them when forced). Concurrent callers join the running check.</summary>

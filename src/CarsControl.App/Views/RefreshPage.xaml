@@ -223,6 +223,14 @@
                 <TextBlock Margin="0,0,0,6" Style="{StaticResource Subtle}" Text="These can't list their updates ahead of time, so they're asked to check and install on their own. They aren't counted as updates found." TextWrapping="Wrap" />
                 <ItemsControl ItemTemplate="{StaticResource UpdateItemTemplate}" ItemsSource="{Binding CheckActions}" />
 
+                <Expander Margin="0,12,0,0" Header="{Binding OptionalHeader}" Visibility="{Binding Optional.Count, Converter={StaticResource ZeroToCollapsed}}">
+                    <StackPanel>
+                        <TextBlock Margin="0,0,0,6" Style="{StaticResource Subtle}" TextWrapping="Wrap"
+                                   Text="Windows lists these under Optional updates and never installs them on its own. Most are old or generic drivers offered in case a device needs one, and they can replace your PC maker's own driver. Leave them unless a device isn't working. They aren't ticked and aren't counted as updates found." />
+                        <ItemsControl ItemTemplate="{StaticResource UpdateItemTemplate}" ItemsSource="{Binding Optional}" />
+                    </StackPanel>
+                </Expander>
+
                 <Expander Margin="0,12,0,0" Header="{Binding IgnoredHeader}">
                     <StackPanel>
                     <TextBlock Style="{StaticResource Subtle}" Text="Nothing is ignored. To hide an update, right-click it › Skip this version or Ignore updates permanently." TextWrapping="Wrap" Visibility="{Binding Ignored.Count, Converter={StaticResource ZeroToVisible}}" />

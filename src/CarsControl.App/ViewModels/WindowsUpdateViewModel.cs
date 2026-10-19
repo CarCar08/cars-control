@@ -15,7 +15,7 @@ public sealed record WuUpdateRow(WuUpdate Update, bool Hidden)
 {
     public string Title => Update.Title;
     public string Size => Update.MaxDownloadBytes > 0 ? Converters.Format.Bytes(Update.MaxDownloadBytes) : "";
-    public string Detail => string.Join(" · ", new[] { Update.KbArticle, Update.IsDriver ? "driver" : null, Size.Length > 0 ? Size : null }.Where(x => x is not null));
+    public string Detail => string.Join(" · ", new[] { Update.KbArticle, (Update.Optional || !Update.Recommended) ? (Update.IsDriver ? "optional driver: Windows doesn't install it on its own" : "optional") : Update.IsDriver ? "driver" : null, Size.Length > 0 ? Size : null }.Where(x => x is not null));
     public override string ToString() => Title;
 }
 

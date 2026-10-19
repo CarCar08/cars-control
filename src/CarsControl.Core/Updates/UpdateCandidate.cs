@@ -35,6 +35,10 @@ public sealed class UpdateCandidate
     /// <summary>pip: the site-packages folder the outdated copy is in (decides admin vs. as-you).</summary>
     public string? Location { get; init; }
     public bool IsDriver { get; init; }
+
+    /// <summary>An optional Windows Update item (BrowseOnly): Windows itself never installs it on its own. Listed apart,
+    /// unticked, and never counted as an update found or included in "Update everything" or maintenance.</summary>
+    public bool IsOptional { get; init; }
     public long? DownloadBytes { get; init; }
 
     public string VersionText => (CurrentVersion, AvailableVersion) switch

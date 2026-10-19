@@ -498,6 +498,51 @@ public class FleetTests
         Assert.Equal("All good", list.Single(e => e.Status.Device == "Old-Mac").Summary);
     }
 
+    /// <summary>shared/fixtures, found upwards from the test output (the Mac tests read the same files).</summary>
+    private static string Fixture(string relative)
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            var path = Path.Combine(dir.FullName, "shared", "fixtures", relative);
+            if (File.Exists(path)) return path;
+        }
+        throw new FileNotFoundException("shared fixture not found", relative);
+    }
+
+    [Fact]
+    public async Task Status_files_from_macs_and_older_windows_releases_are_read()
+    {
+        using var t = new TempTree();
+        File.Copy(Fixture("fleet/status-mac.json"), Path.Combine(t.Root, "status-Example-MacBook-Air.json"));
+        File.Copy(Fixture("fleet/status-windows.json"), Path.Combine(t.Root, "status-Example-PC.json"));
+        var now = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc);
+        var list = await FleetFiles.ReadAllAsync(t.Root, "Example-PC", now);
+        Assert.Equal(["Example-PC", "Example-MacBook-Air"], list.Select(e => e.Status.Device));
+
+        var pc = list[0].Status;
+        Assert.Equal("windows", pc.Platform); // no key in the file: the default
+        Assert.False(pc.IsMac);
+        Assert.Equal("3 updates waiting, 1 health warning, 2 blue screens this week", list[0].Summary);
+
+        var mac = list[1].Status;
+        Assert.True(mac.IsMac);
+        Assert.Equal("macOS 27.0.1", mac.Windows);
+        Assert.Equal(new DateTime(2026, 10, 19, 6, 0, 0, DateTimeKind.Utc), mac.LastBackupUtc!.Value.ToUniversalTime());
+        Assert.Equal("ok", mac.LastBackupResult);
+        Assert.Equal("1 kernel panic this week", list[1].Summary);
+        Assert.False(list[1].Stale);
+    }
+
+    [Fact]
+    public async Task What_windows_writes_has_the_keys_the_mac_reads()
+    {
+        using var t = new TempTree();
+        await FleetFiles.WriteAsync(t.Root, Status("DESK-PC", DateTime.UtcNow));
+        var written = JsonNode.Parse(File.ReadAllText(Path.Combine(t.Root, "status-DESK-PC.json")))!.AsObject().Select(p => p.Key).ToHashSet();
+        var mac = JsonNode.Parse(File.ReadAllText(Fixture("fleet/status-mac.json")))!.AsObject().Select(p => p.Key).ToHashSet();
+        Assert.True(mac.SetEquals(written), string.Join(", ", mac.Except(written).Concat(written.Except(mac))));
+    }
+
     [Fact]
     public async Task A_missing_folder_is_an_empty_list()
     {

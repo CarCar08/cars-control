@@ -1,0 +1,15 @@
+{
+  "device": "Example-PC",
+  "appVersion": "1.1.0",
+  "atUtc": "2026-10-19T08:10:42.1234567Z",
+  "windows": "Windows 11 Pro 25H2",
+  "updatesWaiting": 3,
+  "freeBytes": 412345678901,
+  "totalBytes": 1000202273280,
+  "healthWarnings": 1,
+  "blueScreensLastWeek": 2,
+  "lastMaintenanceUtc": "2026-10-19T03:00:05.5Z",
+  "lastBackupUtc": null,
+  "lastBackupResult": null,
+  "uptimeHours": 30.5
+}

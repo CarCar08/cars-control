@@ -1,10 +1,14 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace CarsControl.Core.Backup;
 
 /// <summary>
-/// What one PC tells the others: a short, non-personal status. No user names, file names or paths.
+/// What one PC tells the others: a short, non-personal status. No user names, file names or paths. The Mac version writes
+/// the same file (macos/Sources/CarsCore/Backup/Fleet.swift): <see cref="Windows"/> then holds "macOS 27.0.1",
+/// <see cref="BlueScreensLastWeek"/> its kernel panics, and <see cref="Platform"/> is "macos". shared/fixtures/fleet has an
+/// example of each that both test suites read.
 /// </summary>
 public sealed record FleetStatus(
     string Device,
@@ -19,7 +23,12 @@ public sealed record FleetStatus(
     DateTime? LastMaintenanceUtc,
     DateTime? LastBackupUtc,
     string? LastBackupResult,
-    double UptimeHours);
+    double UptimeHours,
+    string? Platform = "windows")
+{
+    [JsonIgnore]
+    public bool IsMac => string.Equals(Platform, "macos", StringComparison.OrdinalIgnoreCase) || Windows.StartsWith("macOS", StringComparison.OrdinalIgnoreCase);
+}
 
 public sealed record FleetEntry(FleetStatus Status, bool Stale, bool IsThisPc)
 {
@@ -30,7 +39,8 @@ public sealed record FleetEntry(FleetStatus Status, bool Stale, bool IsThisPc)
             var parts = new List<string>();
             if (Status.UpdatesWaiting > 0) parts.Add($"{Status.UpdatesWaiting} update{(Status.UpdatesWaiting == 1 ? "" : "s")} waiting");
             if (Status.HealthWarnings > 0) parts.Add($"{Status.HealthWarnings} health warning{(Status.HealthWarnings == 1 ? "" : "s")}");
-            if (Status.BlueScreensLastWeek > 0) parts.Add($"{Status.BlueScreensLastWeek} blue screen{(Status.BlueScreensLastWeek == 1 ? "" : "s")} this week");
+            var crash = Status.IsMac ? "kernel panic" : "blue screen";
+            if (Status.BlueScreensLastWeek > 0) parts.Add($"{Status.BlueScreensLastWeek} {crash}{(Status.BlueScreensLastWeek == 1 ? "" : "s")} this week");
             return parts.Count == 0 ? "All good" : string.Join(", ", parts);
         }
     }

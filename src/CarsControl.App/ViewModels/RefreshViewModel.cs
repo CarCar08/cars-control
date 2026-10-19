@@ -117,6 +117,11 @@ public sealed partial class RefreshViewModel : ObservableObject
 
     public ObservableCollection<IgnoredItem> Ignored { get; } = [];
 
+    /// <summary>Optional Windows Update items: collapsed, unticked, not counted.</summary>
+    public ObservableCollection<UpdateItemViewModel> Optional { get; } = [];
+
+    public string OptionalHeader => $"Optional Windows updates ({Optional.Count})";
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CheckCommand), nameof(UpdateSelectedCommand))]
     private bool _isChecking;
@@ -155,6 +160,7 @@ public sealed partial class RefreshViewModel : ObservableObject
             UpdateSelection();
         });
         Ignored.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IgnoredHeader));
+        Optional.CollectionChanged += (_, _) => OnPropertyChanged(nameof(OptionalHeader));
 
         foreach (var s in UpdateCenter.Order.Where(s => s is not (UpdateSource.Store or UpdateSource.Office)))
             Groups.Add(new UpdateGroupViewModel(s, UpdateCenter.SourceTitle(s)));
@@ -233,12 +239,19 @@ public sealed partial class RefreshViewModel : ObservableObject
                 : (items.Count == 0 ? "Up to date" : $"{items.Count} available") + $" · checked {Format.Ago(st.CheckedAt.Value)}";
         }
 
+        var optional = _center.Optional.Select(Vm).ToList();
+        if (!optional.SequenceEqual(Optional))
+        {
+            Optional.Clear();
+            foreach (var o in optional) Optional.Add(o);
+        }
+
         Ignored.Clear();
         foreach (var i in _center.Ignored.OrderBy(i => i.Title)) Ignored.Add(i);
         UpdateSelection();
     }
 
-    private IEnumerable<UpdateItemViewModel> AllItems => Groups.SelectMany(g => g.Items).Concat(CheckActions);
+    private IEnumerable<UpdateItemViewModel> AllItems => Groups.SelectMany(g => g.Items).Concat(Optional).Concat(CheckActions);
 
     private void UpdateSelection()
     {

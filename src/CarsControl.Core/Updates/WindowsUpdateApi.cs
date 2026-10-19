@@ -3,7 +3,11 @@ using CarsControl.Core.Util;
 
 namespace CarsControl.Core.Updates;
 
-public sealed record WuUpdate(string UpdateId, string Title, bool IsDriver, long MaxDownloadBytes, string? KbArticle);
+/// <param name="Optional">Windows Update's BrowseOnly: listed under Settings › Windows Update › Advanced options › Optional
+/// updates and never installed by Windows on its own (mostly old or generic drivers offered "in case a device needs it").</param>
+/// <param name="Recommended">AutoSelectOnWebSites: Windows Update would pick it itself. Old generic drivers come back as
+/// neither optional nor recommended (seen on a PC offered 14 Intel/Realtek drivers from 1968–2016, all with this false).</param>
+public sealed record WuUpdate(string UpdateId, string Title, bool IsDriver, long MaxDownloadBytes, string? KbArticle, bool Optional = false, bool Recommended = true);
 
 /// <summary>One line of Windows Update's own history. Result: 2 succeeded, 3 succeeded with errors, 4 failed, 5 aborted.</summary>
 public sealed record WuHistoryEntry(DateTime Date, string Title, bool IsUninstall, int Result, int HResult)
@@ -102,7 +106,12 @@ public static partial class WindowsUpdateApi
         dynamic articles = com.Own(u.KBArticleIDs);
         dynamic identity = com.Own(u.Identity);
         if (articles.Count > 0) kb = "KB" + (string)articles.Item(0);
-        return new WuUpdate((string)identity.UpdateID, (string)u.Title, (int)u.Type == 2, Convert.ToInt64(u.MaxDownloadSize), kb);
+        bool optional, recommended;
+        try { optional = (bool)u.BrowseOnly; }
+        catch (Exception ex) when (ex is Microsoft.CSharp.RuntimeBinder.RuntimeBinderException or System.Runtime.InteropServices.COMException) { optional = false; }
+        try { recommended = (bool)u.AutoSelectOnWebSites; }
+        catch (Exception ex) when (ex is Microsoft.CSharp.RuntimeBinder.RuntimeBinderException or System.Runtime.InteropServices.COMException) { recommended = true; }
+        return new WuUpdate((string)identity.UpdateID, (string)u.Title, (int)u.Type == 2, Convert.ToInt64(u.MaxDownloadSize), kb, optional, recommended);
     }
 
     public sealed record InstallOutcome(bool Ok, int ResultCode, bool RebootRequired, string Message);

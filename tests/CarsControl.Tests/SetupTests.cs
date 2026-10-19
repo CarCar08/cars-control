@@ -451,6 +451,15 @@ public class ReleaseTests
     }
 
     [Fact]
+    public void Mac_releases_in_the_same_repository_are_never_picked()
+    {
+        // Even a Mac release that somehow carried a Windows-looking installer.
+        var json = List(Release("mac-v2.0.0"), Release("v0.8.1"));
+        Assert.Equal("v0.8.1", ReleaseInfo.PickUpdate(json, SemVer.Parse("0.8.0"), false)!.Tag);
+        Assert.Null(ReleaseInfo.PickUpdate(List(Release("mac-v2.0.0")), SemVer.Parse("0.8.0"), true));
+    }
+
+    [Fact]
     public void Works_on_a_single_release_object_too() =>
         Assert.Equal("v0.8.1", ReleaseInfo.PickUpdate(Release("v0.8.1"), SemVer.Parse("0.8.0"), false)!.Tag);
 

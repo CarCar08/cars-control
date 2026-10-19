@@ -1,0 +1,16 @@
+{
+  "appVersion" : "0.5.0",
+  "atUtc" : "2026-10-19T09:00:00Z",
+  "blueScreensLastWeek" : 1,
+  "device" : "Example-MacBook-Air",
+  "freeBytes" : 122000000000,
+  "healthWarnings" : 0,
+  "lastBackupResult" : "ok",
+  "lastBackupUtc" : "2026-10-19T06:00:00Z",
+  "lastMaintenanceUtc" : "2026-10-19T08:30:00Z",
+  "platform" : "macos",
+  "totalBytes" : 245107195904,
+  "updatesWaiting" : 0,
+  "uptimeHours" : 50.25,
+  "windows" : "macOS 27.0.1"
+}

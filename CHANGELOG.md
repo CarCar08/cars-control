@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1 — no more unwanted driver updates (2026-10-19)
+
+**Fixes**
+- Refresh no longer lists driver updates that Windows itself wouldn't install as ordinary updates. Windows Update also hands out
+  optional and not-recommended items (often very old generic Intel and Realtek drivers that can replace your PC maker's own), and
+  on a PC set to "Don't include drivers with Windows updates" every driver is in that group. They're now in a collapsed
+  **Optional Windows updates** section with an explanation, unticked, and never counted on Home, in the tray or in alerts, or
+  included in "Update everything" and maintenance.
+
 ## 1.1.0 — Optimization page, faster and lighter (2026-10-17)
 
 **Optimization page** (new, Ctrl+8; Settings moves to Ctrl+,)
