@@ -57,6 +57,17 @@ public class UpToDateTests
     }
 
     [Fact]
+    public async Task Removing_an_app_that_is_already_gone_answers_at_once()
+    {
+        const string gone = "Contoso.NotInstalled_1.0.0.0_x64__8wekyb3d8bbwe";
+        Assert.False(CarsControl.Core.Tweaks.StoreAddOnManager.IsInstalledForMe(gone));
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var (ok, message) = await CarsControl.Core.Tweaks.StoreAddOnManager.RemoveAsync(gone, TimeSpan.FromSeconds(5));
+        Assert.True(ok, message);
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
     public void Optional_windows_updates_are_never_ticked_or_counted() // a dad's PC was offered 14 ancient Intel/Realtek drivers, all ticked
     {
         var optional = UpdateSources.ToCandidate(new WuUpdate("00000000-0000-0000-0000-000000000001", "INTEL - System - 7/18/1968 12:00:00 AM - 10.1.14.7", true, 1000, null, Optional: true), false);

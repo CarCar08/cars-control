@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2 — removing built-in apps no longer hangs (2026-10-19)
+
+**Fixes**
+- Privacy › Apps that came with Windows: Remove could keep spinning after Windows had already removed the app. C.A.R.S. now
+  checks every couple of seconds whether the app is gone and finishes as soon as it is, stops waiting after two minutes with
+  a plain explanation, and says "Already removed" for an app that's no longer there instead of trying again.
+
 ## 1.1.1 — no more unwanted driver updates (2026-10-19)
 
 **Fixes**

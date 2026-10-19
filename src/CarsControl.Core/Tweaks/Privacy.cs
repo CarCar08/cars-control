@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 
 namespace CarsControl.Core.Tweaks;
 
@@ -139,16 +139,58 @@ public static class StoreAddOnManager
         return result;
     }
 
-    public static async Task<(bool Ok, string Message)> RemoveAsync(string fullName)
+    public static readonly TimeSpan RemoveTimeout = TimeSpan.FromMinutes(2);
+
+    /// <summary>
+    /// Removes the package for your account. Never waits forever: a removal normally takes a second or two, but on 2026-10-19 Windows
+    /// removed News on a family PC within a second while C.A.R.S. kept spinning (the "done" never arrived). So: nothing to do
+    /// when it's no longer installed, the call runs on a pool thread, the wait stops after <paramref name="timeout"/>, and the
+    /// answer is always what's actually installed afterwards.
+    /// </summary>
+    public static async Task<(bool Ok, string Message)> RemoveAsync(string fullName, TimeSpan? timeout = null)
     {
-        try
+        if (!IsInstalledForMe(fullName)) return (true, "Removed.");
+        var work = Task.Run(async () =>
         {
             var r = await new Windows.Management.Deployment.PackageManager().RemovePackageAsync(fullName);
             return r.IsRegistered ? (false, r.ErrorText) : (true, "Removed.");
+        });
+        _ = work.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted); // a late failure isn't unobserved
+        // Windows' "done" doesn't always come back (on a family PC News was gone within a second while C.A.R.S. kept waiting):
+        // look every 2 seconds whether the package is gone, and stop at the first of: done, gone, or the time limit.
+        var deadline = DateTime.UtcNow + (timeout ?? RemoveTimeout);
+        while (!work.IsCompleted && DateTime.UtcNow < deadline)
+        {
+            await Task.WhenAny(work, Task.Delay(TimeSpan.FromSeconds(2)));
+            if (!work.IsCompleted && !IsInstalledForMe(fullName)) return (true, "Removed.");
+        }
+        if (!work.IsCompleted)
+        {
+            return IsInstalledForMe(fullName)
+                ? (false, "Windows hasn't done it yet. It installs and removes apps one at a time, and another one (often a Microsoft Store update) is still going. It may still finish on its own; check this list again in a few minutes.")
+                : (true, "Removed.");
+        }
+        try
+        {
+            var (ok, message) = await work;
+            return ok || !IsInstalledForMe(fullName) ? (true, "Removed.") : (false, message);
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            return IsInstalledForMe(fullName) ? (false, ex.Message) : (true, "Removed.");
+        }
+    }
+
+    /// <summary>Whether this exact package is still installed for your account. When Windows can't say, it counts as installed.</summary>
+    public static bool IsInstalledForMe(string fullName)
+    {
+        try
+        {
+            return new Windows.Management.Deployment.PackageManager().FindPackageForUser(string.Empty, fullName) is not null;
+        }
+        catch (Exception)
+        {
+            return true;
         }
     }
 }

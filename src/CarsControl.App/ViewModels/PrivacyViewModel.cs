@@ -312,6 +312,13 @@ public sealed partial class PrivacyViewModel : ObservableObject, ITweakRowOwner
     private async Task RemoveAddOnAsync(AddOnRowViewModel? row)
     {
         if (row?.FullName is not { } full || row.IsBusy) return;
+        // The list may be out of date (removed in Settings, or by another tool): then there's nothing to ask about.
+        if (!await Task.Run(() => StoreAddOnManager.IsInstalledForMe(full)))
+        {
+            row.Status = "Already removed.";
+            await RefreshAddOnsAsync();
+            return;
+        }
         if (!await Dialogs.ConfirmAsync($"Remove {row.Title} for your account? You can get it back from the Microsoft Store any time.", "Remove", danger: true)) return;
         row.IsBusy = true;
         var (ok, message) = await StoreAddOnManager.RemoveAsync(full);
